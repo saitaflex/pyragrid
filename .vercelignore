@@ -1,0 +1,10 @@
+# CLI deploys (vercel --prod): never upload local environments, builds, DBs or secrets
+.git
+**/node_modules
+frontend/dist
+backend/.venv
+**/__pycache__
+*.db
+*.log
+.env*
+backend/.env

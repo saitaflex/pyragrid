@@ -179,6 +179,39 @@ class Database:
         return self.q("select id,at,actor,action,details from audit where customer_id=? "
                       "order by id desc limit ?", (customer_id, limit))
 
+    # -- advisor ---------------------------------------------------------
+    def save_suggestion(self, customer_id: str, suggestion_id: str, incident_id: str,
+                        data: str, created_at: str) -> None:
+        self.q("insert into advisor_suggestions(customer_id,suggestion_id,incident_id,data,"
+               "created_at) values(?,?,?,?,?) on conflict do nothing",
+               (customer_id, suggestion_id, incident_id, data, created_at))
+
+    def suggestions_for_incident(self, customer_id: str, incident_id: str) -> list[dict]:
+        return self.q("select suggestion_id,incident_id,data,created_at from advisor_suggestions "
+                      "where customer_id=? and incident_id=?", (customer_id, incident_id))
+
+    def get_suggestion(self, customer_id: str, suggestion_id: str) -> dict | None:
+        rows = self.q("select suggestion_id,incident_id,data,created_at from advisor_suggestions "
+                      "where customer_id=? and suggestion_id=?", (customer_id, suggestion_id))
+        return rows[0] if rows else None
+
+    def add_decision(self, customer_id: str, suggestion_id: str, decision: str, note: str,
+                     by: str, at: str) -> None:
+        self.q("insert into advisor_decisions(customer_id,suggestion_id,decision,note,"
+               "decided_by,decided_at) values(?,?,?,?,?,?) on conflict do nothing",
+               (customer_id, suggestion_id, decision, note, by, at))
+
+    def get_decision(self, customer_id: str, suggestion_id: str) -> dict | None:
+        rows = self.q("select suggestion_id,decision,note,decided_by,decided_at from "
+                      "advisor_decisions where customer_id=? and suggestion_id=?",
+                      (customer_id, suggestion_id))
+        return rows[0] if rows else None
+
+    def list_decisions(self, customer_id: str) -> list[dict]:
+        return self.q("select suggestion_id,decision,note,decided_by,decided_at from "
+                      "advisor_decisions where customer_id=? order by decided_at desc",
+                      (customer_id,))
+
 
 _db: Database | None = None
 

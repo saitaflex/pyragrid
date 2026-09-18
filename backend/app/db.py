@@ -6,6 +6,7 @@ Every query filters by the caller's customer_id.
 from __future__ import annotations
 
 import os
+import threading
 from pathlib import Path
 
 from app.models import Site, SopRule
@@ -29,6 +30,9 @@ def _sqlite_path() -> str:
 class Database:
     def __init__(self, url: str | None = None, sqlite_path: str | None = None) -> None:
         self.is_pg = bool(url)
+        # FastAPI runs sync routes on a thread pool; one shared connection must not run
+        # two statements at once (sqlite3 cursors interleave and return each other's rows).
+        self._lock = threading.RLock()
         if self.is_pg:
             import psycopg
             from psycopg.rows import dict_row
@@ -51,6 +55,10 @@ class Database:
 
     # -- low level -------------------------------------------------------
     def q(self, sql: str, params: tuple = ()) -> list[dict]:
+        with self._lock:
+            return self._q(sql, params)
+
+    def _q(self, sql: str, params: tuple) -> list[dict]:
         stmt = sql.replace("?", "%s") if self.is_pg else sql
         try:
             cur = self._conn.cursor()
@@ -86,19 +94,21 @@ class Database:
         self.q("create table if not exists advisor_decisions(customer_id text, "
                "suggestion_id text, decision text, note text, decided_by text, "
                "decided_at text, primary key(customer_id, suggestion_id))")
+        self.q("create table if not exists meta(k text primary key, v text)")
+        self.q("create table if not exists sensor_installs(customer_id text, site_id text, "
+               "installed_at text, primary key(customer_id, site_id))")
+        self.q("create table if not exists drills(customer_id text, drill_id text, data text, "
+               "created_at text, primary key(customer_id, drill_id))")
+        self.q("create table if not exists drill_responses(customer_id text, drill_id text, "
+               "email text, data text, primary key(customer_id, drill_id, email))")
 
     # -- seed ------------------------------------------------------------
     def seed_if_empty(self) -> None:
-        if self.q("select count(*) as n from users")[0]["n"] > 0:
+        self._seed_additions()
+        if self.q("select count(*) as n from assets")[0]["n"] > 0:
             return
-        from app.auth import hash_password
-        from app.defaults import DEMO_USERS, default_rules, othercorp_site
+        from app.defaults import default_rules, othercorp_site
         from app.importer import seed_sites
-        for email, name, cid, role, pw in DEMO_USERS:
-            salt, h = hash_password(pw)
-            self.q("insert into users(email,name,customer_id,role,salt,hash) "
-                   "values(?,?,?,?,?,?) on conflict do nothing",
-                   (email, name, cid, role, salt, h))
         for s in seed_sites():
             self.q("insert into assets(customer_id,site_id,data) values(?,?,?) "
                    "on conflict do nothing", ("demo", s.site_id, s.model_dump_json()))
@@ -110,7 +120,37 @@ class Database:
                 self.q("insert into sop_rules(customer_id,rule_id,data) values(?,?,?) "
                        "on conflict do nothing", (cid, r.rule_id, r.model_dump_json()))
 
+    def _seed_additions(self) -> None:
+        """Idempotent: demo users added later (partners, extra staff) and the demo sensor
+        meshes reach databases seeded by an earlier version."""
+        from app.auth import hash_password
+        from app.defaults import DEMO_SENSOR_SITES, DEMO_USERS
+        for email, name, cid, role, pw in DEMO_USERS:
+            if self.get_user(email):
+                continue
+            salt, h = hash_password(pw)
+            self.q("insert into users(email,name,customer_id,role,salt,hash) "
+                   "values(?,?,?,?,?,?) on conflict do nothing",
+                   (email, name, cid, role, salt, h))
+        if not self.get_meta("seed_sensors_v1"):
+            for sid in DEMO_SENSOR_SITES:
+                self.add_install("demo", sid, "2025-07-01T00:00:00Z")
+            self.set_meta("seed_sensors_v1", "done")
+
+    # -- meta ------------------------------------------------------------
+    def get_meta(self, k: str) -> str | None:
+        rows = self.q("select v from meta where k=?", (k,))
+        return rows[0]["v"] if rows else None
+
+    def set_meta(self, k: str, v: str) -> None:
+        self.q("insert into meta(k,v) values(?,?) on conflict(k) do update set v=excluded.v",
+               (k, v))
+
     # -- users -----------------------------------------------------------
+    def list_users(self, customer_id: str) -> list[dict]:
+        return self.q("select email,name,role from users where customer_id=? order by email",
+                      (customer_id,))
+
     def get_user(self, email: str) -> dict | None:
         rows = self.q("select email,name,customer_id,role,salt,hash from users where email=?",
                       (email,))
@@ -179,6 +219,46 @@ class Database:
         return self.q("select id,at,actor,action,details from audit where customer_id=? "
                       "order by id desc limit ?", (customer_id, limit))
 
+    # -- sensor installs -------------------------------------------------
+    def list_installs(self, customer_id: str) -> dict[str, str]:
+        rows = self.q("select site_id,installed_at from sensor_installs where customer_id=?",
+                      (customer_id,))
+        return {r["site_id"]: r["installed_at"] for r in rows}
+
+    def add_install(self, customer_id: str, site_id: str, at: str) -> None:
+        self.q("insert into sensor_installs(customer_id,site_id,installed_at) values(?,?,?) "
+               "on conflict do nothing", (customer_id, site_id, at))
+
+    def remove_install(self, customer_id: str, site_id: str) -> None:
+        self.q("delete from sensor_installs where customer_id=? and site_id=?",
+               (customer_id, site_id))
+
+    # -- drills ----------------------------------------------------------
+    def save_drill(self, customer_id: str, drill_id: str, data: str, created_at: str) -> None:
+        self.q("insert into drills(customer_id,drill_id,data,created_at) values(?,?,?,?) "
+               "on conflict(customer_id,drill_id) do update set data=excluded.data",
+               (customer_id, drill_id, data, created_at))
+
+    def get_drill(self, customer_id: str, drill_id: str) -> str | None:
+        rows = self.q("select data from drills where customer_id=? and drill_id=?",
+                      (customer_id, drill_id))
+        return rows[0]["data"] if rows else None
+
+    def list_drills(self, customer_id: str, limit: int = 50) -> list[str]:
+        rows = self.q("select data from drills where customer_id=? order by created_at desc "
+                      "limit ?", (customer_id, limit))
+        return [r["data"] for r in rows]
+
+    def save_response(self, customer_id: str, drill_id: str, email: str, data: str) -> None:
+        self.q("insert into drill_responses(customer_id,drill_id,email,data) values(?,?,?,?) "
+               "on conflict(customer_id,drill_id,email) do update set data=excluded.data",
+               (customer_id, drill_id, email, data))
+
+    def list_responses(self, customer_id: str, drill_id: str) -> dict[str, str]:
+        rows = self.q("select email,data from drill_responses where customer_id=? and drill_id=?",
+                      (customer_id, drill_id))
+        return {r["email"]: r["data"] for r in rows}
+
     # -- advisor ---------------------------------------------------------
     def save_suggestion(self, customer_id: str, suggestion_id: str, incident_id: str,
                         data: str, created_at: str) -> None:
@@ -224,7 +304,7 @@ def get_db() -> Database:
         url = os.environ.get("DATABASE_URL") or os.environ.get("POSTGRES_URL")
         if url and not url.startswith(("postgres://", "postgresql://")):
             url = None
-        _db =Database(url=url) if url else Database(sqlite_path=_sqlite_path())
+        _db = Database(url=url) if url else Database(sqlite_path=_sqlite_path())
     return _db
 
 

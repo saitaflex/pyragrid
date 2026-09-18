@@ -208,3 +208,24 @@ tr:hover td { background: var(--panel); }
   .page { padding: 0; }
   .print-sheet { border: none !important; box-shadow: none !important; }
 }
+
+/* ---- sensor popups & drill alert ---- */
+.sensor-pop .maplibregl-popup-content {
+  background: var(--bg-2); color: var(--text); border: 1px solid var(--border-2);
+  border-radius: 10px; font-size: 12.5px; line-height: 1.45; padding: 9px 12px;
+}
+.sensor-pop .maplibregl-popup-tip { border-top-color: var(--bg-2); border-bottom-color: var(--bg-2); }
+.drill-alert {
+  display: flex; align-items: center; gap: 14px; flex-wrap: wrap;
+  border: 1px solid var(--critical-hot); border-radius: 12px; padding: 10px 16px;
+  background: color-mix(in srgb, var(--critical-hot) 16%, transparent); color: var(--text);
+  font-size: 14px; animation: drill-glow 1.6s ease-in-out infinite;
+}
+.drill-pulse { width: 10px; height: 10px; border-radius: 50%; background: var(--critical-hot); box-shadow: 0 0 0 0 var(--critical-hot); animation: drill-ping 1.2s infinite; }
+@keyframes drill-ping { 0% { box-shadow: 0 0 0 0 rgba(255,59,48,.7) } 100% { box-shadow: 0 0 0 12px rgba(255,59,48,0) } }
+@keyframes drill-glow { 50% { background: color-mix(in srgb, var(--critical-hot) 26%, transparent) } }
+@media (prefers-reduced-motion: reduce) { .drill-alert, .drill-pulse { animation: none } }
+.check-opt { display: flex; gap: 10px; align-items: flex-start; padding: 10px 12px; border: 1px solid var(--border); border-radius: 10px; cursor: pointer; font-size: 14px; }
+.check-opt:hover { border-color: var(--border-2); }
+.check-opt.on { border-color: var(--ember); background: color-mix(in srgb, var(--ember) 10%, transparent); }
+.check-opt input { width: auto; margin-top: 3px; }

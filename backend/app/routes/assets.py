@@ -7,7 +7,7 @@ from fastapi import APIRouter, Depends, HTTPException, UploadFile
 from fastapi.responses import PlainTextResponse
 
 from app import state
-from app.auth import AuthUser, get_current_user, require_admin
+from app.auth import AuthUser, require_admin, require_staff
 from app.db import get_db
 from app.importer import parse_assets, sample_csv_text
 from app.models import ImportReport, Site
@@ -16,12 +16,12 @@ router = APIRouter(tags=["assets"])
 
 
 @router.get("/sites", response_model=list[Site])
-def list_sites(user: AuthUser = Depends(get_current_user)) -> list[Site]:
+def list_sites(user: AuthUser = Depends(require_staff)) -> list[Site]:
     return get_db().list_assets(user.customer_id)  # already sorted by site_id
 
 
 @router.get("/assets/sample.csv")
-def sample_csv(user: AuthUser = Depends(get_current_user)) -> PlainTextResponse:
+def sample_csv(user: AuthUser = Depends(require_staff)) -> PlainTextResponse:
     return PlainTextResponse(sample_csv_text(), media_type="text/csv")
 
 

@@ -5,7 +5,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 
 from app import handoff as handoff_mod
 from app import service, state
-from app.auth import AuthUser, get_current_user
+from app.auth import AuthUser, get_current_user, require_staff
 from app.db import get_db
 from app.models import (
     Detection, HandoffPack, Portfolio, ReplaySummary, SiteStatus, TimelinePoint,
@@ -17,7 +17,7 @@ router = APIRouter(tags=["risk"])
 
 
 @router.get("/portfolio", response_model=Portfolio)
-def portfolio(at: str | None = None, user: AuthUser = Depends(get_current_user)) -> Portfolio:
+def portfolio(at: str | None = None, user: AuthUser = Depends(require_staff)) -> Portfolio:
     rd = state.get_replay(user.customer_id)
     rules = get_db().list_rules(user.customer_id)
     return service.portfolio(rd, rules, snap(at))
@@ -25,7 +25,7 @@ def portfolio(at: str | None = None, user: AuthUser = Depends(get_current_user))
 
 @router.get("/sites/{site_id}/status", response_model=SiteStatus)
 def site_status(site_id: str, at: str | None = None,
-                user: AuthUser = Depends(get_current_user)) -> SiteStatus:
+                user: AuthUser = Depends(require_staff)) -> SiteStatus:
     rd = state.get_replay(user.customer_id)
     if site_id not in rd.sites:
         raise HTTPException(status_code=404, detail="site not found")
@@ -34,7 +34,7 @@ def site_status(site_id: str, at: str | None = None,
 
 
 @router.get("/sites/{site_id}/timeline", response_model=list[TimelinePoint])
-def timeline(site_id: str, user: AuthUser = Depends(get_current_user)) -> list[TimelinePoint]:
+def timeline(site_id: str, user: AuthUser = Depends(require_staff)) -> list[TimelinePoint]:
     rd = state.get_replay(user.customer_id)
     if site_id not in rd.sites:
         raise HTTPException(status_code=404, detail="site not found")
@@ -56,13 +56,15 @@ def detections(at: str | None = None,
 
 
 @router.get("/replay/summary", response_model=ReplaySummary)
-def replay_summary(user: AuthUser = Depends(get_current_user)) -> ReplaySummary:
+def replay_summary(user: AuthUser = Depends(require_staff)) -> ReplaySummary:
     return build_summary(state.get_replay(user.customer_id))
 
 
 @router.get("/sites/{site_id}/handoff", response_model=HandoffPack)
 def handoff(site_id: str, at: str | None = None,
             user: AuthUser = Depends(get_current_user)) -> HandoffPack:
+    if user.role not in ("admin", "operator", "firefighter"):
+        raise HTTPException(status_code=403, detail="forbidden")
     rd = state.get_replay(user.customer_id)
     if site_id not in rd.sites:
         raise HTTPException(status_code=404, detail="site not found")

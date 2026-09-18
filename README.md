@@ -13,6 +13,22 @@ Built by two people in one repo (Rural Valley hackathon).
 - Track 2 writes only `frontend/`.
 - Branches: `t1/<topic>` and `t2/<topic>` → PR into `main`. Commits start with `[T1]` or `[T2]`.
 
+## Ground sensors, partner views and drills
+- **Hexagonal sensor mesh (optional per site).** 37 temperature nodes on a 3-ring hex grid
+  covering the site plus a ≥1 km buffer. Each node is OK / Warm (≥45°C) / Fire (≥65°C) /
+  Offline (burned or battery) / Dropped (tilt alarm). Shown on `/sensors`, the site page and
+  the shared view; admins install or remove a mesh from the site page. Demo readings are
+  simulated from the same detections the engine scores (`backend/app/sensors.py`).
+- **Partner views.** `fire@demo.eu`, `gov@demo.eu`, `ngo@demo.eu` see `/situation` and
+  `/sensors` only, filtered by a sharing policy (fire service: personnel, access routes,
+  handoff pack; government: personnel; NGO: public picture only; nobody outside the company
+  sees asset values). Company endpoints return 403 to partners.
+- **Drills ("white attempts").** An admin starts a case study on a real site (`/drills`):
+  simulated satellite and sensor signals arrive over real time, every employee gets a
+  drill alert on every page, acknowledges, picks protocol actions, and is scored on speed
+  and accuracy against the site's SOP rules. Drill data never enters real alerts.
+  Extra demo employees: `ana@demo.eu`, `luis@demo.eu`.
+
 ## Run locally
 ```bash
 # Engine

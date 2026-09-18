@@ -5,6 +5,7 @@ import type {
   AckResponse, AdvisorResponse, Alert, AuditEntry, DecisionRecord, Detection, HandoffPack,
   Health, ImportReport, Incident, IngestionRun, LoginResponse, OutboxEmail, Portfolio, Site,
   SiteStatus, SopRule, SopRuleInput, SourceStatus, TimelinePoint, User, ReplaySummary,
+  SensorsResponse, Situation, StaffUser, DrillView, DrillScenario,
 } from "./types";
 
 // Unset in a production build → same origin (the root Vercel project serves the Engine at /api).
@@ -185,7 +186,25 @@ const mock = {
     addAudit(currentUser?.email ?? "admin@demo.eu", "assets_import", `accepted ${accepted}`);
     return { accepted, rejected, total_sites: accepted };
   },
+
+  // Sensor meshes, partner sharing and drills are computed by the Engine only.
+  getSensors: (_step: number, _siteId?: string): Promise<SensorsResponse> => needsEngine(),
+  installSensors: (_siteId: string): Promise<void> => needsEngine(),
+  removeSensors: (_siteId: string): Promise<void> => needsEngine(),
+  getSituation: (_step: number): Promise<Situation> => needsEngine(),
+  getStaff: (): Promise<StaffUser[]> => needsEngine(),
+  createDrill: (_body: { site_id: string; scenario: DrillScenario; pace_s: number; participants: string[] }): Promise<DrillView> => needsEngine(),
+  getDrills: (): Promise<DrillView[]> => needsEngine(),
+  getActiveDrills: (): Promise<DrillView[]> => Promise.resolve([]),
+  getDrill: (_id: string): Promise<DrillView> => needsEngine(),
+  ackDrill: (_id: string): Promise<DrillView> => needsEngine(),
+  respondDrill: (_id: string, _actions: string[], _note: string): Promise<DrillView> => needsEngine(),
+  endDrill: (_id: string): Promise<DrillView> => needsEngine(),
 };
+
+function needsEngine(): Promise<never> {
+  return Promise.reject(new ApiError(503, "This feature needs the live Engine (not available in mock mode)."));
+}
 
 export class ApiError extends Error {
   status: number;
@@ -254,6 +273,19 @@ const live: typeof mock = {
     form.append("file", new Blob([text], { type: "text/csv" }), "assets.csv");
     return req("POST", "/assets/import", { form });
   },
+
+  getSensors: (s, siteId) => req("GET", "/sensors", { query: { at: at(s), site_id: siteId } }),
+  installSensors: (siteId) => req("POST", "/sensors/install", { body: { site_id: siteId } }),
+  removeSensors: (siteId) => req("DELETE", `/sensors/install/${encodeURIComponent(siteId)}`),
+  getSituation: (s) => req("GET", "/situation", { query: { at: at(s) } }),
+  getStaff: () => req("GET", "/staff"),
+  createDrill: (body) => req("POST", "/drills", { body }),
+  getDrills: () => req("GET", "/drills"),
+  getActiveDrills: () => req("GET", "/drills/active"),
+  getDrill: (id) => req("GET", `/drills/${encodeURIComponent(id)}`),
+  ackDrill: (id) => req("POST", `/drills/${encodeURIComponent(id)}/ack`),
+  respondDrill: (id, actions, note) => req("POST", `/drills/${encodeURIComponent(id)}/respond`, { body: { actions, note } }),
+  endDrill: (id) => req("POST", `/drills/${encodeURIComponent(id)}/end`),
 };
 
 // ---- offline state: live calls that cannot reach the Engine fall back to mocks ----

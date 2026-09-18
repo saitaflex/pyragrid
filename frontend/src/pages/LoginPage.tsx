@@ -4,9 +4,13 @@ import { motion } from "framer-motion";
 import { useAuth } from "../state/AuthContext";
 
 const DEMO = [
-  ["admin@demo.eu", "admin"],
+  ["admin@demo.eu", "company admin"],
   ["operator@demo.eu", "operator"],
-  ["other@othercorp.eu", "other tenant"],
+  ["ana@demo.eu", "operator (shift lead)"],
+  ["fire@demo.eu", "fire service"],
+  ["gov@demo.eu", "civil protection"],
+  ["ngo@demo.eu", "NGO"],
+  ["other@othercorp.eu", "other company"],
 ];
 
 export function LoginPage() {
@@ -20,7 +24,7 @@ export function LoginPage() {
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     setBusy(true); setErr("");
-    try { await login(email, password); nav("/"); }
+    try { await login(email, password); nav("/"); } // partners are redirected to /situation
     catch (e2) { setErr((e2 as Error).message === "invalid credentials" ? "Invalid credentials" : "Login failed"); }
     finally { setBusy(false); }
   };

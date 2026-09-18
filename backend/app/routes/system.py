@@ -8,7 +8,7 @@ from pathlib import Path
 from fastapi import APIRouter, Depends
 
 from app import config, state
-from app.auth import AuthUser, get_current_user, require_admin
+from app.auth import AuthUser, require_admin, require_staff
 from app.db import get_db
 from app.models import AuditEntry, Health, IngestionRun, OutboxEmail, SourceStatus
 from app.replay import build_outbox, snap
@@ -69,7 +69,7 @@ def _advisor_source() -> SourceStatus:
 
 
 @router.get("/status/sources", response_model=list[SourceStatus])
-def sources(user: AuthUser = Depends(get_current_user)) -> list[SourceStatus]:
+def sources(user: AuthUser = Depends(require_staff)) -> list[SourceStatus]:
     ds = _meta().get("data_source", "synthetic_fallback")
     if ds.startswith("firms"):
         firms = SourceStatus(name="FIRMS", state="ONLINE", detail="NASA FIRMS VIIRS detections")
@@ -91,7 +91,7 @@ def sources(user: AuthUser = Depends(get_current_user)) -> list[SourceStatus]:
 
 
 @router.get("/ingestion/runs", response_model=list[IngestionRun])
-def ingestion_runs(user: AuthUser = Depends(get_current_user)) -> list[IngestionRun]:
+def ingestion_runs(user: AuthUser = Depends(require_staff)) -> list[IngestionRun]:
     try:
         raw = json.loads((_DATA / "ingestion_runs.json").read_text(encoding="utf-8"))
     except (OSError, ValueError):
@@ -103,7 +103,7 @@ def ingestion_runs(user: AuthUser = Depends(get_current_user)) -> list[Ingestion
 
 @router.get("/notifications/outbox", response_model=list[OutboxEmail])
 def outbox(at: str | None = None,
-           user: AuthUser = Depends(get_current_user)) -> list[OutboxEmail]:
+           user: AuthUser = Depends(require_staff)) -> list[OutboxEmail]:
     rd = state.get_replay(user.customer_id)
     rules = get_db().list_rules(user.customer_id)
     return build_outbox(rd, rules, get_db().acks_map(user.customer_id), snap(at))

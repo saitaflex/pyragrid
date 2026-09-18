@@ -13,7 +13,7 @@ RouteStatus = Literal["available", "potentially_exposed"]
 DataSource = Literal["firms_sp", "firms_nrt", "synthetic_fallback"]
 FactorStatus = Literal["observed", "customer_provided", "assumed", "unknown"]
 SourceState = Literal["ONLINE", "FALLBACK", "OFFLINE", "NOT_CONFIGURED"]
-Role = Literal["admin", "operator"]
+Role = Literal["admin", "operator", "firefighter", "government", "ngo"]
 Audience = Literal["operator", "site_team", "fire_service_liaison"]
 AdvisorEngine = Literal["groq", "ollama", "template"]
 Decision = Literal["approved", "rejected"]
@@ -369,4 +369,189 @@ class HandoffPack(BaseModel):
     water_points: list[WaterPoint]
     contact: Contact
     simulated: Literal[True] = True
+    disclaimer: str
+
+
+# ---------------------------------------------------------------- ground sensors
+SensorState = Literal["ok", "warm", "fire", "offline", "dropped"]
+SensorEventKind = Literal["warm", "fire", "offline", "dropped", "recovered"]
+
+
+class SensorNode(BaseModel):
+    sensor_id: str
+    site_id: str
+    label: str
+    ring: int
+    lat: float
+    lon: float
+    hex: list[list[float]]          # closed polygon, [lon, lat] pairs
+    state: SensorState
+    temp_c: Optional[float]         # None when the node is offline
+    battery_pct: int
+    last_seen: Optional[str]
+    state_since: Optional[str]
+    note: str
+
+
+class SensorEvent(BaseModel):
+    at: str
+    sensor_id: str
+    site_id: str
+    site_name: str
+    label: str
+    kind: SensorEventKind
+    temp_c: Optional[float]
+    detail: str
+
+
+class SensorMesh(BaseModel):
+    site_id: str
+    site_name: str
+    lat: float
+    lon: float
+    installed_at: str
+    spacing_m: int
+    coverage_m: int
+    nodes: int
+    counts: dict[str, int]
+    ground_fire: bool
+
+
+class SensorsResponse(BaseModel):
+    at: str
+    meshes: list[SensorMesh]
+    nodes: list[SensorNode]
+    events: list[SensorEvent]
+
+
+class SensorInstallRequest(BaseModel):
+    site_id: str
+
+
+# ---------------------------------------------------------------- partner sharing
+class SharingPolicy(BaseModel):
+    role: Role
+    label: str
+    asset_values: bool
+    personnel: bool
+    access_routes: bool
+    criticality: bool
+    handoff: bool
+    company_ops: bool   # alerts, incidents, SOP rules, advisor, drills
+
+
+class SituationSite(BaseModel):
+    site_id: str
+    name: str
+    type: SiteType
+    lat: float
+    lon: float
+    radius_m: int
+    level: Level
+    score: int
+    nearest_fire_km: Optional[float]
+    fire_bearing_deg: Optional[int]
+    fire_moving_toward_site: Optional[bool]
+    criticality: Optional[int]
+    personnel_on_site: Optional[int]
+    access_routes: Optional[list[AccessRoute]]
+    value_eur: Optional[int]
+    sensors_installed: bool
+    ground_fire: bool
+
+
+class Situation(BaseModel):
+    at: str
+    viewer_role: Role
+    policy: SharingPolicy
+    matrix: list[SharingPolicy]
+    counts: PortfolioCounts
+    sites: list[SituationSite]
+
+
+# ---------------------------------------------------------------- drills
+DrillScenario = Literal["approaching", "sensor_first", "false_alarm"]
+DrillStageKind = Literal["satellite", "satellite_clear", "sensor_warm", "sensor_fire",
+                         "sensor_offline", "sensor_dropped", "sensor_normal"]
+
+
+class StaffUser(BaseModel):
+    email: str
+    name: str
+    role: Role
+
+
+class DrillCreate(BaseModel):
+    site_id: str
+    scenario: DrillScenario
+    pace_s: int = 30
+    participants: list[str] = []
+
+
+class DrillStage(BaseModel):
+    offset_s: int
+    kind: DrillStageKind
+    title: str
+    detail: str
+    level: Level
+    lat: Optional[float] = None
+    lon: Optional[float] = None
+    sensor_id: Optional[str] = None
+    temp_c: Optional[float] = None
+
+
+class DrillRespondRequest(BaseModel):
+    actions: list[str]
+    note: str = ""
+
+
+class DrillResponse(BaseModel):
+    email: str
+    name: str
+    acked_at: Optional[str]
+    responded_at: Optional[str]
+    actions: list[str]
+    note: str
+    ack_seconds: Optional[int]
+    respond_seconds: Optional[int]
+    correct: int
+    wrong: int
+    missed: int
+    score: Optional[int]
+
+
+class DrillNotification(BaseModel):
+    to: str
+    channel: Literal["in_app", "email"]
+    subject: str
+
+
+class DrillView(BaseModel):
+    drill_id: str
+    site_id: str
+    site_name: str
+    lat: float
+    lon: float
+    radius_m: int
+    scenario: DrillScenario
+    scenario_title: str
+    briefing: str
+    pace_s: int
+    status: Literal["running", "ended"]
+    created_by: str
+    created_at: str
+    ended_at: Optional[str]
+    elapsed_s: int
+    level: Level
+    stages: list[DrillStage]            # revealed so far
+    total_stages: int
+    next_stage_in_s: Optional[int]
+    participants: list[str]
+    participant_names: dict[str, str]
+    options: list[str]
+    expected_actions: Optional[list[str]]   # hidden until the viewer has responded
+    my_response: Optional[DrillResponse]
+    responses: list[DrillResponse]          # admin: everyone; others: own only
+    notifications: list[DrillNotification]
+    nodes: list[SensorNode]
     disclaimer: str

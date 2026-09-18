@@ -70,3 +70,13 @@ def require_admin(user: AuthUser = Depends(get_current_user)) -> AuthUser:
     if user.role != "admin":
         raise HTTPException(status_code=403, detail="forbidden")
     return user
+
+
+STAFF_ROLES = ("admin", "operator")
+
+
+def require_staff(user: AuthUser = Depends(get_current_user)) -> AuthUser:
+    """Company employees only; partner organisations use /situation and /sensors."""
+    if user.role not in STAFF_ROLES:
+        raise HTTPException(status_code=403, detail="forbidden")
+    return user

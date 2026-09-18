@@ -7,7 +7,8 @@ export type RouteStatus = "available" | "potentially_exposed";
 export type DataSource = "firms_sp" | "firms_nrt" | "synthetic_fallback";
 export type FactorStatus = "observed" | "customer_provided" | "assumed" | "unknown";
 export type SourceState = "ONLINE" | "FALLBACK" | "OFFLINE" | "NOT_CONFIGURED";
-export type Role = "admin" | "operator";
+export type Role = "admin" | "operator" | "firefighter" | "government" | "ngo";
+export const STAFF_ROLES: Role[] = ["admin", "operator"];
 
 export interface Health {
   status: "ok";
@@ -263,4 +264,59 @@ export interface HandoffPack {
   contact: { role: string; phone: string };
   simulated: true;
   disclaimer: string;
+}
+
+// ---- ground sensors (hexagonal mesh) ----
+export type SensorState = "ok" | "warm" | "fire" | "offline" | "dropped";
+export interface SensorNode {
+  sensor_id: string; site_id: string; label: string; ring: number; lat: number; lon: number;
+  hex: [number, number][]; state: SensorState; temp_c: number | null; battery_pct: number;
+  last_seen: string | null; state_since: string | null; note: string;
+}
+export interface SensorEvent {
+  at: string; sensor_id: string; site_id: string; site_name: string; label: string;
+  kind: "warm" | "fire" | "offline" | "dropped" | "recovered"; temp_c: number | null; detail: string;
+}
+export interface SensorMesh {
+  site_id: string; site_name: string; lat: number; lon: number; installed_at: string;
+  spacing_m: number; coverage_m: number; nodes: number; counts: Record<SensorState, number>; ground_fire: boolean;
+}
+export interface SensorsResponse { at: string; meshes: SensorMesh[]; nodes: SensorNode[]; events: SensorEvent[] }
+
+// ---- partner sharing ----
+export interface SharingPolicy {
+  role: Role; label: string; asset_values: boolean; personnel: boolean; access_routes: boolean;
+  criticality: boolean; handoff: boolean; company_ops: boolean;
+}
+export interface SituationSite {
+  site_id: string; name: string; type: SiteType; lat: number; lon: number; radius_m: number;
+  level: Level; score: number; nearest_fire_km: number | null; fire_bearing_deg: number | null;
+  fire_moving_toward_site: boolean | null; criticality: number | null; personnel_on_site: number | null;
+  access_routes: AccessRoute[] | null; value_eur: number | null; sensors_installed: boolean; ground_fire: boolean;
+}
+export interface Situation {
+  at: string; viewer_role: Role; policy: SharingPolicy; matrix: SharingPolicy[];
+  counts: Record<Level, number>; sites: SituationSite[];
+}
+
+// ---- training drills ----
+export type DrillScenario = "approaching" | "sensor_first" | "false_alarm";
+export interface StaffUser { email: string; name: string; role: Role }
+export interface DrillStage {
+  offset_s: number; kind: "satellite" | "satellite_clear" | "sensor_warm" | "sensor_fire" | "sensor_offline" | "sensor_dropped" | "sensor_normal";
+  title: string; detail: string; level: Level; lat: number | null; lon: number | null; sensor_id: string | null; temp_c: number | null;
+}
+export interface DrillResponse {
+  email: string; name: string; acked_at: string | null; responded_at: string | null; actions: string[]; note: string;
+  ack_seconds: number | null; respond_seconds: number | null; correct: number; wrong: number; missed: number; score: number | null;
+}
+export interface DrillView {
+  drill_id: string; site_id: string; site_name: string; lat: number; lon: number; radius_m: number;
+  scenario: DrillScenario; scenario_title: string; briefing: string; pace_s: number;
+  status: "running" | "ended"; created_by: string; created_at: string; ended_at: string | null; elapsed_s: number;
+  level: Level; stages: DrillStage[]; total_stages: number; next_stage_in_s: number | null;
+  participants: string[]; participant_names: Record<string, string>; options: string[]; expected_actions: string[] | null;
+  my_response: DrillResponse | null; responses: DrillResponse[];
+  notifications: { to: string; channel: "in_app" | "email"; subject: string }[];
+  nodes: SensorNode[]; disclaimer: string;
 }

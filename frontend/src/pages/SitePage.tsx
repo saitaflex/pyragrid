@@ -8,6 +8,8 @@ import { SiteMap } from "../components/SiteMap";
 import { FactorBars } from "../components/FactorBars";
 import { LevelBadge } from "../components/LevelBadge";
 import { Reveal } from "../components/Reveal";
+import { MeshCounts, SensorEventList, SensorLegend } from "../components/Sensors";
+import { AdminOnly } from "../components/RouteGuards";
 import { LEVEL_COLOR, SITE_TYPE_LABEL, compass, eur, fmtTime } from "../api/levels";
 
 function Field({ label, value }: { label: string; value: React.ReactNode }) {
@@ -20,6 +22,12 @@ export function SitePage() {
   const { data: st, error } = useAsync(() => api.getSiteStatus(siteId, step), [siteId, step]);
   const { data: tl } = useAsync(() => api.getTimeline(siteId), [siteId]);
   const { data: dets } = useAsync(() => api.getDetections(step), [step]);
+  const { data: sens, error: sensErr, reload: reloadSens } = useAsync(() => api.getSensors(step, siteId), [siteId, step]);
+  const mesh = sens?.meshes[0];
+  const toggleMesh = async () => {
+    if (mesh) await api.removeSensors(siteId); else await api.installSensors(siteId);
+    reloadSens();
+  };
 
   if (error) return <div className="page"><div className="container"><div className="card">Site not found.</div></div></div>;
 
@@ -49,7 +57,7 @@ export function SitePage() {
           </div>
         </Reveal>
         <Reveal delay={0.05}>
-          {st && <SiteMap sites={[st]} detections={dets ?? []} center={[st.lon, st.lat]} zoom={11} height={300} />}
+          {st && <SiteMap sites={[st]} detections={dets ?? []} sensors={sens?.nodes ?? []} center={[st.lon, st.lat]} zoom={mesh ? 12 : 11} height={300} />}
           <div className="card" style={{ marginTop: 14, display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
             <Field label="Threat" value={st?.nearest_fire_km !== null && st ? `Fire ${st.nearest_fire_km!.toFixed(1)} km ${compass(st.fire_bearing_deg!)}` : "No fire within 25 km"} />
             <Field label="Fire moving toward site" value={st?.fire_moving_toward_site === null ? "Unknown" : st?.fire_moving_toward_site ? "Yes" : "No"} />
@@ -60,6 +68,34 @@ export function SitePage() {
           </div>
         </Reveal>
       </div>
+
+      <Reveal>
+        <div className="card grid" style={{ gap: 12 }}>
+          <div className="between wrap">
+            <div className="eyebrow">Ground sensors · hexagonal mesh</div>
+            <div className="row wrap" style={{ gap: 12 }}>
+              {mesh && <SensorLegend />}
+              {!sensErr && <AdminOnly><button className="btn sm ghost" onClick={toggleMesh}>{mesh ? "Remove mesh" : "Install sensor mesh"}</button></AdminOnly>}
+            </div>
+          </div>
+          {sensErr ? <div className="small dim">{sensErr}</div> : !mesh ? (
+            <div className="small dim">No sensors on this site. The mesh is optional: 37 temperature nodes on a hexagonal grid confirm satellite detections on the ground, and see fire at night or under cloud.</div>
+          ) : (
+            <div className="grid" style={{ gridTemplateColumns: "1fr 1.4fr", gap: 18 }}>
+              <div className="grid" style={{ gap: 10, alignContent: "start" }}>
+                <div className="small dim">{mesh.nodes} nodes, one every {mesh.spacing_m} m, covering {(mesh.coverage_m / 1000).toFixed(1)} km around the centre.</div>
+                <MeshCounts mesh={mesh} />
+                {mesh.ground_fire
+                  ? <div className="small" style={{ color: "var(--critical-hot)", fontWeight: 700 }}>Fire confirmed on the ground by {mesh.counts.fire} sensor{mesh.counts.fire > 1 ? "s" : ""}.</div>
+                  : st?.nearest_fire_km !== null && st?.nearest_fire_km !== undefined && st.nearest_fire_km < 5
+                    ? <div className="small" style={{ color: "var(--elevated)" }}>Satellite fire {st.nearest_fire_km.toFixed(1)} km away, not yet sensed on the ground.</div>
+                    : <div className="small dim">No fire sensed on the ground.</div>}
+              </div>
+              <div style={{ maxHeight: 220, overflow: "auto" }}><SensorEventList events={sens?.events ?? []} showSite={false} max={12} /></div>
+            </div>
+          )}
+        </div>
+      </Reveal>
 
       <Reveal>
         <div className="card"><div className="eyebrow" style={{ marginBottom: 10 }}>Score timeline · 0–100</div>

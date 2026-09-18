@@ -8,7 +8,7 @@ from fastapi import APIRouter, Depends, HTTPException
 
 from app import advisor as advisor_mod
 from app import service, state
-from app.auth import AuthUser, get_current_user, require_admin
+from app.auth import AuthUser, require_admin, require_staff
 from app.db import get_db
 from app.models import (
     AdvisorResponse, AdvisorSuggestion, DecisionRecord, DecisionRequest,
@@ -65,7 +65,7 @@ def _latest(customer_id: str, incident_id: str) -> AdvisorResponse | None:
 
 @router.post("/advisor/incidents/{incident_id}", response_model=AdvisorResponse)
 def generate(incident_id: str, at: str | None = None,
-             user: AuthUser = Depends(get_current_user)) -> AdvisorResponse:
+             user: AuthUser = Depends(require_staff)) -> AdvisorResponse:
     rd = state.get_replay(user.customer_id)
     rules = get_db().list_rules(user.customer_id)
     at = snap(at)
@@ -82,7 +82,7 @@ def generate(incident_id: str, at: str | None = None,
 
 
 @router.get("/advisor/incidents/{incident_id}/latest", response_model=AdvisorResponse)
-def latest(incident_id: str, user: AuthUser = Depends(get_current_user)) -> AdvisorResponse:
+def latest(incident_id: str, user: AuthUser = Depends(require_staff)) -> AdvisorResponse:
     resp = _latest(user.customer_id, incident_id)
     if resp is None:
         raise HTTPException(status_code=404, detail="no advice yet")
@@ -91,7 +91,7 @@ def latest(incident_id: str, user: AuthUser = Depends(get_current_user)) -> Advi
 
 @router.post("/advisor/suggestions/{suggestion_id}/decision", response_model=DecisionRecord)
 def decide(suggestion_id: str, body: DecisionRequest,
-           user: AuthUser = Depends(get_current_user)) -> DecisionRecord:
+           user: AuthUser = Depends(require_staff)) -> DecisionRecord:
     db = get_db()
     row = db.get_suggestion(user.customer_id, suggestion_id)
     if not row:

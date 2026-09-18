@@ -5,7 +5,7 @@ from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, Response
 
-from app.auth import AuthUser, get_current_user, require_admin
+from app.auth import AuthUser, require_admin, require_staff
 from app.db import get_db
 from app.models import SopRule, SopRuleInput
 
@@ -17,7 +17,7 @@ def _now() -> str:
 
 
 @router.get("/sop/rules", response_model=list[SopRule])
-def list_rules(user: AuthUser = Depends(get_current_user)) -> list[SopRule]:
+def list_rules(user: AuthUser = Depends(require_staff)) -> list[SopRule]:
     return get_db().list_rules(user.customer_id)
 
 

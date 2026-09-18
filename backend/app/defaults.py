@@ -9,7 +9,18 @@ DEMO_USERS = [
     ("admin@demo.eu", "Demo Admin", "demo", "admin", "demo1234"),
     ("operator@demo.eu", "Demo Operator", "demo", "operator", "demo1234"),
     ("other@othercorp.eu", "Other Admin", "othercorp", "admin", "demo1234"),
+    # extra employees, so a drill has a team to alert and a scoreboard to fill
+    ("ana@demo.eu", "Ana Pereira (shift lead)", "demo", "operator", "demo1234"),
+    ("luis@demo.eu", "Luis Castro (site technician)", "demo", "operator", "demo1234"),
+    # partner organisations: read-only views the company shares its situation with
+    ("fire@demo.eu", "Ourense Fire Brigade", "demo", "firefighter", "demo1234"),
+    ("gov@demo.eu", "Civil Protection Galicia", "demo", "government", "demo1234"),
+    ("ngo@demo.eu", "Forest Watch NGO", "demo", "ngo", "demo1234"),
 ]
+
+# Sites with the optional ground-sensor mesh installed in the demo (seeded once).
+DEMO_SENSOR_SITES = ["ES-OU-001", "ES-OU-003", "ES-OU-005", "ES-OU-008", "ES-OU-009",
+                     "ES-OU-013", "ES-OU-015", "ES-OU-016", "ES-OU-020"]
 
 
 def default_rules() -> list[SopRule]:

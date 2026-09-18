@@ -3,7 +3,8 @@ import { AnimatePresence, motion } from "framer-motion";
 import { TopBar } from "./components/TopBar";
 import { Footer } from "./components/Disclaimer";
 import { Banner } from "./components/Banner";
-import { RequireAuth } from "./components/RouteGuards";
+import { RequireAuth, StaffOnly } from "./components/RouteGuards";
+import { DrillBanner } from "./components/DrillBanner";
 import { useSyncExternalStore } from "react";
 import { USE_MOCKS, offlineStore } from "./api/client";
 import { LoginPage } from "./pages/LoginPage";
@@ -17,6 +18,10 @@ import { RulesPage } from "./pages/RulesPage";
 import { SystemPage } from "./pages/SystemPage";
 import { FieldPage } from "./pages/FieldPage";
 import { HandoffPage } from "./pages/HandoffPage";
+import { SensorsPage } from "./pages/SensorsPage";
+import { SituationPage } from "./pages/SituationPage";
+import { DrillsPage } from "./pages/DrillsPage";
+import { DrillPage } from "./pages/DrillPage";
 
 function Layout() {
   const loc = useLocation();
@@ -26,6 +31,7 @@ function Layout() {
       <div className="no-print"><TopBar /></div>
       <Banner show={USE_MOCKS} tone="info">Mock mode — interactive demo data. Every screen runs without a backend.</Banner>
       <Banner show={!USE_MOCKS && offline} tone="warn">Engine offline — showing built-in demo data until it is reachable again.</Banner>
+      <div className="no-print"><DrillBanner /></div>
       <AnimatePresence mode="wait">
         <motion.main key={loc.pathname} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} transition={{ duration: 0.25 }} style={{ flex: 1 }}>
           <Outlet />
@@ -42,16 +48,24 @@ export default function App() {
       <Route path="/login" element={<LoginPage />} />
       <Route element={<Layout />}>
         <Route element={<RequireAuth />}>
-          <Route path="/" element={<PortfolioPage />} />
-          <Route path="/sites/:siteId" element={<SitePage />} />
+          {/* every role: the shared picture */}
+          <Route path="/situation" element={<SituationPage />} />
+          <Route path="/sensors" element={<SensorsPage />} />
           <Route path="/sites/:siteId/handoff" element={<HandoffPage />} />
-          <Route path="/incidents/:incidentId" element={<IncidentPage />} />
-          <Route path="/alerts" element={<AlertsPage />} />
-          <Route path="/history" element={<HistoryPage />} />
-          <Route path="/assets" element={<AssetsPage />} />
-          <Route path="/rules" element={<RulesPage />} />
-          <Route path="/system" element={<SystemPage />} />
-          <Route path="/field/:siteId" element={<FieldPage />} />
+          {/* company staff only */}
+          <Route element={<StaffOnly />}>
+            <Route path="/" element={<PortfolioPage />} />
+            <Route path="/sites/:siteId" element={<SitePage />} />
+            <Route path="/incidents/:incidentId" element={<IncidentPage />} />
+            <Route path="/alerts" element={<AlertsPage />} />
+            <Route path="/history" element={<HistoryPage />} />
+            <Route path="/drills" element={<DrillsPage />} />
+            <Route path="/drills/:drillId" element={<DrillPage />} />
+            <Route path="/assets" element={<AssetsPage />} />
+            <Route path="/rules" element={<RulesPage />} />
+            <Route path="/system" element={<SystemPage />} />
+            <Route path="/field/:siteId" element={<FieldPage />} />
+          </Route>
         </Route>
       </Route>
     </Routes>

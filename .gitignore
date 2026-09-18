@@ -1,0 +1,15 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+
+# Secrets (see backend/.env.example)
+backend/.env
+
+# Local SQLite DB
+*.db
+
+# Node (not used at repo root)
+node_modules/
+dist/

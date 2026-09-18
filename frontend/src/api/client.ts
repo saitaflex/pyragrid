@@ -7,7 +7,8 @@ import type {
   SiteStatus, SopRule, SopRuleInput, SourceStatus, TimelinePoint, User, ReplaySummary,
 } from "./types";
 
-export const BASE = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:8000";
+// Unset in a production build → same origin (the root Vercel project serves the Engine at /api).
+export const BASE = import.meta.env.VITE_API_BASE_URL ?? (import.meta.env.DEV ? "http://localhost:8000" : "");
 export const USE_MOCKS = import.meta.env.VITE_USE_MOCKS !== "false"; // default to mocks
 
 const delay = (ms: number) => new Promise((r) => setTimeout(r, ms));
@@ -29,7 +30,7 @@ let auditId = 2;
 let currentUser: User | null = null;
 const addAudit = (actor: string, action: string, details: string) => { audit.unshift({ id: auditId++, at: now(), actor, action, details }); };
 
-export const api = {
+const mock = {
   health(): Promise<Health> {
     return Promise.resolve({
       status: "ok", contract_version: "2.1.0", model_version: "rules-1.0",
@@ -190,5 +191,108 @@ export class ApiError extends Error {
   status: number;
   constructor(status: number, message: string) { super(message); this.status = status; }
 }
+
+// ---- live mode: same signatures, backed by the Engine (§2.5) ----
+type Q = Record<string, string | number | undefined>;
+const at = (step: number) => E.stepIso(step);
+
+async function req<T>(method: string, path: string, opts: { query?: Q; body?: unknown; form?: FormData } = {}): Promise<T> {
+  const qs = Object.entries(opts.query ?? {}).filter(([, v]) => v !== undefined)
+    .map(([k, v]) => `${encodeURIComponent(k)}=${encodeURIComponent(String(v))}`).join("&");
+  const headers: Record<string, string> = {};
+  try { const t = sessionStorage.getItem("wai_token"); if (t) headers.Authorization = `Bearer ${t}`; } catch { /* ignore */ }
+  if (opts.body !== undefined) headers["Content-Type"] = "application/json";
+  const res = await fetch(`${BASE}/api${path}${qs ? `?${qs}` : ""}`, {
+    method, headers, body: opts.form ?? (opts.body !== undefined ? JSON.stringify(opts.body) : undefined),
+  });
+  if (!res.ok) {
+    let detail = res.statusText;
+    try { const j = await res.json(); detail = typeof j.detail === "string" ? j.detail : JSON.stringify(j.detail); } catch { /* ignore */ }
+    throw new ApiError(res.status, detail);
+  }
+  if (res.status === 204) return undefined as T;
+  return res.json() as Promise<T>;
+}
+
+const live: typeof mock = {
+  health: () => req("GET", "/health"),
+  async login(email, password) {
+    const r = await req<LoginResponse>("POST", "/auth/login", { body: { email, password } });
+    currentUser = r.user; // keeps the mock fallback usable if the Engine drops later
+    return r;
+  },
+  me: () => req("GET", "/auth/me"),
+  getSites: () => req("GET", "/sites"),
+  getPortfolio: (s) => req("GET", "/portfolio", { query: { at: at(s) } }),
+  getSiteStatus: (id, s) => req("GET", `/sites/${encodeURIComponent(id)}/status`, { query: { at: at(s) } }),
+  getTimeline: (id) => req("GET", `/sites/${encodeURIComponent(id)}/timeline`),
+  getDetections: (s, windowH = 12) => req("GET", "/detections", { query: { at: at(s), window_hours: windowH } }),
+  getSummary: () => req("GET", "/replay/summary"),
+  getAlerts: (s, status = "all") => req("GET", "/alerts", { query: { at: at(s), status } }),
+  acknowledge: (id) => req("POST", `/alerts/${encodeURIComponent(id)}/acknowledge`),
+  getIncidents: (s) => req("GET", "/incidents", { query: { at: at(s) } }),
+  getIncidentsHistory: () => req("GET", "/incidents/history"),
+  getIncident: (id, s) => req("GET", `/incidents/${encodeURIComponent(id)}`, { query: { at: at(s) } }),
+  getRules: () => req("GET", "/sop/rules"),
+  createRule: (body) => req("POST", "/sop/rules", { body }),
+  updateRule: (id, body) => req("PUT", `/sop/rules/${encodeURIComponent(id)}`, { body }),
+  deleteRule: (id) => req("DELETE", `/sop/rules/${encodeURIComponent(id)}`),
+  getSources: () => req("GET", "/status/sources"),
+  getIngestionRuns: () => req("GET", "/ingestion/runs"),
+  getOutbox: (s) => req("GET", "/notifications/outbox", { query: { at: at(s) } }),
+  getAudit: () => req("GET", "/audit"),
+  generateAdvice: (incidentId, _siteId, s) => req("POST", `/advisor/incidents/${encodeURIComponent(incidentId)}`, { query: { at: at(s) } }),
+  async getLatestAdvice(incidentId) {
+    try { return await req<AdvisorResponse>("GET", `/advisor/incidents/${encodeURIComponent(incidentId)}/latest`); }
+    catch (e) { if (e instanceof ApiError && e.status === 404) return null; throw e; }
+  },
+  decide: (suggestionId, decision, note) => req("POST", `/advisor/suggestions/${encodeURIComponent(suggestionId)}/decision`, { body: { decision, note } }),
+  getDecisions: () => req("GET", "/advisor/decisions"),
+  getHandoff: (id, s) => req("GET", `/sites/${encodeURIComponent(id)}/handoff`, { query: { at: at(s) } }),
+  importAssets(text) {
+    const form = new FormData();
+    form.append("file", new Blob([text], { type: "text/csv" }), "assets.csv");
+    return req("POST", "/assets/import", { form });
+  },
+};
+
+// ---- offline state: live calls that cannot reach the Engine fall back to mocks ----
+let offline = false;
+const offlineSubs = new Set<() => void>();
+export const offlineStore = {
+  get: () => offline,
+  subscribe(fn: () => void) { offlineSubs.add(fn); return () => { offlineSubs.delete(fn); }; },
+};
+const setOffline = (v: boolean) => { if (offline !== v) { offline = v; offlineSubs.forEach((f) => f()); } };
+
+// Engine unreachable (network error) or broken (5xx) → mock data; 4xx are real answers.
+const unreachable = (e: unknown) => !(e instanceof ApiError) || e.status >= 500;
+
+function withFallback(): typeof mock {
+  const out = {} as Record<string, unknown>;
+  for (const key of Object.keys(mock) as (keyof typeof mock)[]) {
+    out[key] = async (...args: unknown[]) => {
+      try {
+        const r = await (live[key] as (...a: unknown[]) => Promise<unknown>)(...args);
+        setOffline(false);
+        return r;
+      } catch (e) {
+        if (unreachable(e)) {
+          setOffline(true);
+          return (mock[key] as (...a: unknown[]) => Promise<unknown>)(...args);
+        }
+        if (e instanceof ApiError && e.status === 401 && key !== "login") {
+          // stale or mock token against the live Engine → sign in again
+          try { sessionStorage.removeItem("wai_token"); sessionStorage.removeItem("wai_user"); } catch { /* ignore */ }
+          if (!location.pathname.startsWith("/login")) location.assign("/login");
+        }
+        throw e;
+      }
+    };
+  }
+  return out as typeof mock;
+}
+
+export const api: typeof mock = USE_MOCKS ? mock : withFallback();
 
 export type Api = typeof api;

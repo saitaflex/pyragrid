@@ -13,3 +13,4 @@ backend/.env
 # Node (not used at repo root)
 node_modules/
 dist/
+.vercel/

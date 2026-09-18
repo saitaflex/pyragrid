@@ -219,8 +219,12 @@ _db: Database | None = None
 def get_db() -> Database:
     global _db
     if _db is None:
-        url = os.environ.get("DATABASE_URL")
-        _db = Database(url=url) if url else Database(sqlite_path=_sqlite_path())
+        # Neon on Vercel injects DATABASE_URL and/or POSTGRES_URL; ignore non-Postgres
+        # values (e.g. a stray Prisma "file:./dev.db") and fall back to SQLite.
+        url = os.environ.get("DATABASE_URL") or os.environ.get("POSTGRES_URL")
+        if url and not url.startswith(("postgres://", "postgresql://")):
+            url = None
+        _db =Database(url=url) if url else Database(sqlite_path=_sqlite_path())
     return _db
 
 

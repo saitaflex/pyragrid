@@ -4,7 +4,8 @@ import { TopBar } from "./components/TopBar";
 import { Footer } from "./components/Disclaimer";
 import { Banner } from "./components/Banner";
 import { RequireAuth } from "./components/RouteGuards";
-import { USE_MOCKS } from "./api/client";
+import { useSyncExternalStore } from "react";
+import { USE_MOCKS, offlineStore } from "./api/client";
 import { LoginPage } from "./pages/LoginPage";
 import { PortfolioPage } from "./pages/PortfolioPage";
 import { SitePage } from "./pages/SitePage";
@@ -19,10 +20,12 @@ import { HandoffPage } from "./pages/HandoffPage";
 
 function Layout() {
   const loc = useLocation();
+  const offline = useSyncExternalStore(offlineStore.subscribe, offlineStore.get);
   return (
     <div className="app-shell">
       <div className="no-print"><TopBar /></div>
       <Banner show={USE_MOCKS} tone="info">Mock mode — interactive demo data. Every screen runs without a backend.</Banner>
+      <Banner show={!USE_MOCKS && offline} tone="warn">Engine offline — showing built-in demo data until it is reachable again.</Banner>
       <AnimatePresence mode="wait">
         <motion.main key={loc.pathname} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} transition={{ duration: 0.25 }} style={{ flex: 1 }}>
           <Outlet />

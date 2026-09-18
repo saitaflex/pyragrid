@@ -1,0 +1,21 @@
+site_id,name,type,lat,lon,radius_m,value_eur,fuel_class,personnel_on_site,primary_access_bearing_deg,criticality
+ES-OU-001,Solar Trives 01,solar_farm,42.330,-7.230,600,12400000,high,7,200,4
+ES-OU-002,Solar Manzaneda 02,solar_farm,42.300,-7.260,500,8700000,high,4,90,4
+ES-OU-003,Wind Cabeza de Manzaneda,wind_farm,42.265,-7.290,1500,21000000,very_high,3,0,4
+ES-OU-004,Substation Chandrexa 14,substation,42.270,-7.340,150,8000000,medium,2,180,5
+ES-OU-005,Forest Block Queixa A,forest_block,42.230,-7.400,2000,4200000,very_high,5,270,3
+ES-OU-006,Wind Vilariño 01,wind_farm,42.170,-7.260,1500,18500000,high,2,45,4
+ES-OU-007,Telecom Tower Conso,telecom_tower,42.160,-7.300,50,350000,high,0,120,3
+ES-OU-008,Substation Larouco 47,substation,42.360,-7.140,150,9500000,medium,3,225,5
+ES-OU-009,Solar Larouco 03,solar_farm,42.330,-7.180,700,14000000,high,6,300,4
+ES-OU-010,Forest Block Seadur B,forest_block,42.380,-7.100,2500,5600000,very_high,4,180,3
+ES-OU-011,Telecom Tower Pena Trevinca,telecom_tower,42.250,-6.850,50,420000,very_high,0,90,3
+ES-OU-012,Solar A Rua 01,solar_farm,42.400,-7.110,600,10800000,medium,5,0,4
+ES-OU-013,Substation O Barco 09,substation,42.415,-6.985,150,7200000,low,3,270,5
+ES-OU-014,Wind Serra do Eixe,wind_farm,42.300,-6.950,1500,16000000,high,2,315,4
+ES-OU-015,Forest Block Viana C,forest_block,42.180,-7.110,2000,3900000,high,3,0,3
+ES-OU-016,Solar Castro Caldelas 01,solar_farm,42.375,-7.415,500,7900000,medium,4,135,4
+ES-OU-017,Substation Montederramo 05,substation,42.280,-7.500,150,6100000,medium,2,90,5
+ES-OU-018,Solar Xinzo 02,solar_farm,42.060,-7.720,800,15300000,low,8,45,4
+ES-OU-019,Forest Block Oimbra D,forest_block,41.900,-7.470,2000,3300000,high,4,180,3
+ES-OU-020,San Xoan de Rio Test Plot,test_plot,42.366,-7.286,80,25000,medium,1,90,1

@@ -10,7 +10,7 @@ import threading
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.routes import system
+from app.routes import advisor, alerts, assets, auth, risk, sop, system
 
 app = FastAPI(title="Wildfire Asset Intelligence — Engine", version="2.1.0")
 
@@ -35,8 +35,16 @@ def ensure_ready() -> None:
     with _ready_lock:
         if _ready:
             return
-        # T1-M4+ will create the schema, seed users/sites/rules, and load replay data here.
+        from app.db import get_db
+        get_db().seed_if_empty()  # schema is created on connect
         _ready = True
 
 
-app.include_router(system.router, prefix="/api")
+for _r in (system, auth, assets, risk, alerts, sop, advisor):
+    app.include_router(_r.router, prefix="/api")
+
+
+@app.middleware("http")
+async def _ensure_ready_mw(request, call_next):
+    ensure_ready()
+    return await call_next(request)

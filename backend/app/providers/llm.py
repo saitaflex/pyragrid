@@ -32,17 +32,24 @@ class GroqProvider(LLMProvider):
         self._key = os.environ["GROQ_API_KEY"]
 
     def suggest(self, system_prompt: str, user_message: str) -> list[dict]:
-        r = httpx.post(
-            "https://api.groq.com/openai/v1/chat/completions",
-            headers={"Authorization": f"Bearer {self._key}"},
-            json={"model": self.model, "temperature": 0.2, "max_tokens": 1200,
-                  "response_format": {"type": "json_object"},
-                  "messages": [{"role": "system", "content": system_prompt},
-                               {"role": "user", "content": user_message}]},
-            timeout=config.LLM_TIMEOUT_S,
-        )
-        r.raise_for_status()
-        return _parse(r.json()["choices"][0]["message"]["content"])
+        body = {"model": self.model, "temperature": 0.2, "max_tokens": 4000,
+                "response_format": {"type": "json_object"},
+                "messages": [{"role": "system", "content": system_prompt},
+                             {"role": "user", "content": user_message}]}
+        if self.model.startswith("openai/gpt-oss"):
+            # reasoning model: its thinking counts against max_tokens, keep it short
+            body["reasoning_effort"] = "low"
+        for attempt in range(2):
+            r = httpx.post("https://api.groq.com/openai/v1/chat/completions",
+                           headers={"Authorization": f"Bearer {self._key}"},
+                           json=body, timeout=config.LLM_TIMEOUT_S)
+            # Groq answers 400 json_validate_failed when the model produced invalid JSON;
+            # that is random, so one retry usually succeeds
+            if r.status_code == 400 and "json_validate_failed" in r.text and attempt == 0:
+                continue
+            r.raise_for_status()
+            return _parse(r.json()["choices"][0]["message"]["content"])
+        raise RuntimeError("unreachable")
 
 
 class OllamaProvider(LLMProvider):

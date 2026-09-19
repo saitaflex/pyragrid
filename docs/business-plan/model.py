@@ -1,8 +1,11 @@
 """model.py — PyraGrid five-year financial model (FY2026–FY2031).
 
 Every number in PyraGrid_Business_Plan.md comes from this file, so the plan stays
-internally consistent. Change an assumption, rerun `python model.py`, and the tables
-in PyraGrid_Business_Plan.md are regenerated with build_plan.py.
+internally consistent. Change an assumption, run `python build_plan.py`, and every table
+in PyraGrid_Business_Plan.md is regenerated.
+
+Competition rules built in: electricity costs 40 % more than the reference tariff, and
+shipping is available only one day a week.
 """
 from __future__ import annotations
 
@@ -32,6 +35,16 @@ A = dict(
     install_cost=1200.0,                             # field install, expensed
     sensor_opex=250.0,                               # connectivity, batteries, visits per site per year
     sensor_life=4, sensor_replacement=0.10,
+    # competition rule 1: electricity costs 40 % more than the reference tariff
+    elec_price=0.20,                                 # € per kWh, reference business tariff
+    elec_surcharge=0.40,                             # +40 %
+    dc_energy_share=0.30,                            # share of cloud and AI cost that is data-centre electricity
+    gateway_kwh=150,                                 # kWh per sensor site per year (gateway, charging, testing)
+    office_kwh_per_fte=2500,                         # kWh per employee per year (office and sensor workshop)
+    # competition rule 2: shipping only one day a week
+    stock_weeks=6,                                   # weeks of sensor kits kept in stock (1-week cycle + transit + safety)
+    spare_sensors_per_site=2,                        # spares left on each sensor site, since a part cannot be sent next day
+    freight_pct=0.04,                                # weekly consolidated freight, % of hardware bought
     # operating expenses (fully loaded annual cost per FTE, 2026 €, +3 %/yr)
     founders=2, founder_pay=[30000, 36000, 55000, 70000, 80000, 90000],
     fte_eng=[0, 2, 4, 6, 9, 12], cost_eng=58000,
@@ -56,7 +69,8 @@ def run(a: dict = A, price_factor: float = 1.0, growth_factor: float = 1.0, chur
     r: dict[str, list[float]] = {k: [0.0] * N for k in [
         "customers", "new_customers", "sites", "avg_sites", "price_es", "price_pro", "blended",
         "sensor_sites", "avg_sensor_sites", "new_sensor_sites", "rev_platform", "rev_sensor",
-        "rev_services", "revenue", "cogs_cloud", "cogs_support", "cogs_sensor_ops", "cogs_install",
+        "rev_services", "revenue", "cogs_cloud", "cogs_energy", "cogs_freight", "opex_energy",
+        "elec_extra", "inventory", "cogs_support", "cogs_sensor_ops", "cogs_install",
         "depreciation", "cogs", "gross", "opex_people", "opex_marketing", "opex_other", "opex",
         "ebitda", "ebit", "interest", "grant", "ebt", "tax", "net", "capex", "fleet_gross",
         "fleet_net", "arr", "ar", "ap", "deferred", "nwc", "cfo", "cff", "cash", "loan",
@@ -114,11 +128,17 @@ def run(a: dict = A, price_factor: float = 1.0, growth_factor: float = 1.0, chur
                 dep += c / a["sensor_life"] / 2
         r["depreciation"][i] = dep
         # --- cost of revenue
-        r["cogs_cloud"][i] = r["avg_sites"][i] * (a["cloud_per_site"] + a["llm_per_site"]) + (2000 if i == 0 else 0)
+        ef = 1 + a["elec_surcharge"]
+        cloud_all = r["avg_sites"][i] * (a["cloud_per_site"] + a["llm_per_site"]) + (2000 if i == 0 else 0)
+        dc_energy = cloud_all * a["dc_energy_share"]                    # at the reference tariff
+        site_energy = r["avg_sensor_sites"][i] * a["gateway_kwh"] * a["elec_price"]
+        r["cogs_cloud"][i] = cloud_all - dc_energy
+        r["cogs_energy"][i] = (dc_energy + site_energy) * ef
+        r["cogs_freight"][i] = a["freight_pct"] * capex
         r["cogs_support"][i] = a["support_pct"] * (r["rev_platform"][i] + r["rev_sensor"][i])
         r["cogs_sensor_ops"][i] = r["avg_sensor_sites"][i] * a["sensor_opex"]
         r["cogs_install"][i] = new_s * a["install_cost"]
-        cogs = r["cogs_cloud"][i] + r["cogs_support"][i] + r["cogs_sensor_ops"][i] + r["cogs_install"][i] + dep
+        cogs = r["cogs_cloud"][i] + r["cogs_energy"][i] + r["cogs_freight"][i] + r["cogs_support"][i] + r["cogs_sensor_ops"][i] + r["cogs_install"][i] + dep
         r["cogs"][i] = cogs
         r["gross"][i] = rev - cogs
         # --- operating expenses
@@ -129,8 +149,11 @@ def run(a: dict = A, price_factor: float = 1.0, growth_factor: float = 1.0, chur
         r["opex_people"][i] = people
         r["opex_marketing"][i] = a["marketing_fixed"][i] + a["marketing_pct"] * rev
         r["opex_other"][i] = a["other_opex"][i]
-        r["opex"][i] = people + r["opex_marketing"][i] + r["opex_other"][i]
         r["fte"][i] = a["founders"] + a["fte_eng"][i] + a["fte_sales"][i] + a["fte_cs"][i] + a["fte_ga"][i]
+        office_energy = r["fte"][i] * a["office_kwh_per_fte"] * a["elec_price"]
+        r["opex_energy"][i] = office_energy * ef
+        r["elec_extra"][i] = (dc_energy + site_energy + office_energy) * a["elec_surcharge"]
+        r["opex"][i] = people + r["opex_marketing"][i] + r["opex_other"][i] + r["opex_energy"][i]
         r["sm_cost"][i] = a["fte_sales"][i] * a["cost_sales"] * w + r["opex_marketing"][i]
         r["ebitda"][i] = r["gross"][i] + dep - r["opex"][i]          # EBITDA adds back depreciation
         r["ebit"][i] = r["ebitda"][i] - dep
@@ -161,7 +184,9 @@ def run(a: dict = A, price_factor: float = 1.0, growth_factor: float = 1.0, chur
         r["ar"][i] = rev * a["dso_days"] / 365
         r["ap"][i] = (r["cogs"][i] - dep + r["opex_marketing"][i] + r["opex_other"][i]) * a["dpo_days"] / 365
         r["deferred"][i] = a["deferred_share"] * (r["rev_platform"][i] + r["rev_sensor"][i]) * (sites / r["avg_sites"][i] if r["avg_sites"][i] else 0) if i else 0
-        r["nwc"][i] = r["ar"][i] - r["ap"][i] - r["deferred"][i]
+        # weekly shipping: kits held in stock plus spare sensors left on every sensor site
+        r["inventory"][i] = capex * a["stock_weeks"] / 52 + s_sites * a["spare_sensors_per_site"] * a["sensor_unit_cost"]
+        r["nwc"][i] = r["ar"][i] + r["inventory"][i] - r["ap"][i] - r["deferred"][i]
         d_nwc = r["nwc"][i] - (r["nwc"][i - 1] if i else 0.0)
         r["cfo"][i] = r["net"][i] + dep - d_nwc
         # --- equity rounds
@@ -175,7 +200,7 @@ def run(a: dict = A, price_factor: float = 1.0, growth_factor: float = 1.0, chur
         r["fleet_net"][i] = (r["fleet_net"][i - 1] if i else 0.0) + capex - dep
         r["paid_in"][i] = (r["paid_in"][i - 1] if i else 0.0) + equity
         r["retained"][i] = (r["retained"][i - 1] if i else 0.0) + r["net"][i]
-        r["assets"][i] = r["cash"][i] + r["ar"][i] + r["fleet_net"][i]
+        r["assets"][i] = r["cash"][i] + r["ar"][i] + r["inventory"][i] + r["fleet_net"][i]
         r["liab_eq"][i] = r["ap"][i] + r["deferred"][i] + loan + r["paid_in"][i] + r["retained"][i]
         prev_sites, prev_sensor = sites, s_sites
     return r

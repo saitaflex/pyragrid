@@ -64,15 +64,16 @@ Essential, €3,600 Professional), optional Sensor-as-a-Service
 | Monitored sites (year end) | 60 | 760 | 2,860 |
 | Annual recurring revenue (ARR) | €0.17M | €2.6M | €11.5M |
 | Revenue | €0.09M | €1.8M | €9.2M |
-| Gross margin | 76% | 74% | 75% |
-| EBITDA | (€0.33M) | (€0.11M) | €3.8M |
-| EBITDA margin | -353% | -6% | 41% |
+| Gross margin | 75% | 73% | 74% |
+| EBITDA | (€0.34M) | (€0.15M) | €3.6M |
+| EBITDA margin | -360% | -8% | 40% |
 | Team (FTE) | 6 | 18 | 34 |
 
 - **Break-even:** monthly EBITDA turns positive around **Aug 2029**; FY2030 is the first profitable year.
-- **Funding:** €0.30M pre-seed plus an ENISA participative loan (€0.15M) and innovation grants (€0.25M) fund the pilots; a **€1.5M seed round** in Q1 2028 takes the company to profitability. The lowest year-end cash balance is €0.23M (FY2027).
-- **Unit economics:** a platform site earns a 89% contribution margin; a sensor site pays back in 30 months; LTV/CAC is 6.4x and the cost of winning a customer is paid back in 8 months.
-- **Valuation:** €7.1M on a discounted cash flow at a 25% venture discount rate; €22.6M present value of a 6x ARR exit in 2031.
+- **Competition rules included:** electricity 40% more expensive and shipping only one day a week are built into every year of the model (section 9.11).
+- **Funding:** €0.30M pre-seed plus an ENISA participative loan (€0.15M) and innovation grants (€0.25M) fund the pilots; a **€1.5M seed round** in Q1 2028 takes the company to profitability. The lowest year-end cash balance is €0.22M (FY2027).
+- **Unit economics:** a platform site earns a 89% contribution margin; a sensor site pays back in 33 months; LTV/CAC is 6.3x and the cost of winning a customer is paid back in 8 months.
+- **Valuation:** €6.5M on a discounted cash flow at a 25% venture discount rate; €22.6M present value of a 6x ARR exit in 2031.
 
 <div style="page-break-after: always;"></div>
 
@@ -221,7 +222,7 @@ List prices rise 3% a year from FY2029. The Professional share grows from
 - **Land and expand:** customers start with their most exposed sites and add sites over
   time; sites per customer grow from 10 to 26.
 - **Hardware as a service** keeps the sensor fleet on PyraGrid's balance sheet, turning a
-  one-off sale into recurring revenue with a 23% internal rate of return per sensor site.
+  one-off sale into recurring revenue with a 17% internal rate of return per sensor site.
 
 <div style="page-break-after: always;"></div>
 
@@ -281,6 +282,16 @@ reduced salaries until the seed round.
   €85 per sensor, €3,000 per site kit including the gateway.
 - **Field operations:** installation by trained local contractors (€1,200 per site),
   annual inspection and battery service (€250 per site per year).
+- **Weekly shipping (competition rule):** carriers collect and deliver only one day a week,
+  so hardware cannot be sent next day. PyraGrid plans installations around the weekly
+  delivery, keeps 6 weeks of sensor kits in stock and leaves
+  2 spare sensors on every sensor site, so a failed sensor is
+  swapped the same day by the local contractor instead of waiting for the next shipment.
+- **Electricity (competition rule):** electricity costs 40% more than
+  the reference tariff of €0.20 per kWh. The model applies this to
+  data-centre power (about 30% of cloud and AI cost), gateway power
+  on sensor sites and office power. Sensors run on solar cells and batteries, so the field
+  network does not depend on the grid.
 
 <div style="page-break-after: always;"></div>
 
@@ -304,6 +315,8 @@ The fiscal year is the calendar year. FY2026 is the formation and pilot year.
 | Sensor fleet | Capitalised, straight-line over 4 years (half-year convention); 10% of sensors replaced each year | |
 | Marketing | Fixed programme plus 10% of revenue | |
 | Working capital | Receivables 45 days; payables 30 days; deferred revenue 45% of annual subscription | |
+| **Rule: electricity** | Tariff €0.20/kWh **+40%** = €0.28/kWh; data-centre share of cloud cost 30%; 150 kWh per sensor site; 2,500 kWh per employee | Every year |
+| **Rule: shipping** | **One shipping day a week**: 6 weeks of kits in stock, 2 spare sensors per sensor site, freight 4% of hardware bought | Every year |
 | Tax | Spanish corporate tax: 15% for the first two profitable years, then 25%; losses carried forward | |
 | Public funding | ENISA participative loan €0.15M at 4%, repaid FY2029–FY2031; innovation grants €0.25M | |
 
@@ -335,10 +348,11 @@ The fiscal year is the calendar year. FY2026 is the formation and pilot year.
 | | € per site per year |
 |:--|--:|
 | Blended subscription price | €2,874 |
-| Cloud hosting and data | (70) |
-| AI inference | (15) |
+| Cloud hosting and data (excluding electricity) | (49) |
+| AI inference (excluding electricity) | (10) |
+| Data-centre electricity, +40% tariff | (36) |
 | Customer support (8%) | (230) |
-| **Contribution per site** | **€2,559** |
+| **Contribution per site** | **€2,549** |
 | **Contribution margin** | **89%** |
 
 **Per sensor site (Sensor-as-a-Service)**
@@ -346,15 +360,18 @@ The fiscal year is the calendar year. FY2026 is the formation and pilot year.
 | | € |
 |:--|--:|
 | Hardware kit (30 sensors and gateway) | €3,000 |
+| Weekly consolidated freight (4%) | €120 |
+| Spare sensors left on site (2) | €170 |
 | Installation | €1,200 |
-| **Upfront investment** | **€4,200** |
+| **Upfront investment** | **€4,490** |
 | Annual fee | €2,400 |
 | Field service, connectivity and batteries | (250) |
+| Gateway electricity, +40% tariff | (42) |
 | Support (8%) | (192) |
-| Sensor replacement (10% per year) | (255) |
-| **Annual contribution** | **€1,703** |
-| **Payback** | **30 months** |
-| **IRR over the 4-year sensor life** | **23%** |
+| Sensor replacement (10% per year, with freight) | (265) |
+| **Annual contribution** | **€1,651** |
+| **Payback** | **33 months** |
+| **IRR over the 4-year sensor life** | **17%** |
 
 **Per customer (FY2029)**
 
@@ -362,10 +379,10 @@ The fiscal year is the calendar year. FY2026 is the formation and pilot year.
 |:--|--:|:--|
 | Average revenue per customer (ARPA) | €63,054 | Revenue ÷ average customers |
 | Customer acquisition cost (CAC), fully loaded | €31,052 | (Sales and marketing + 50% of customer success + 30% of founders' time) ÷ new customers |
-| Gross margin | 74% | Gross profit ÷ revenue |
-| Lifetime value (LTV), 5-year horizon | €199,271 | ARPA × gross margin × Σ (1 − churn)ᵗ for t = 0…4 |
-| LTV uncapped | €584,511 | ARPA × gross margin ÷ churn |
-| **LTV / CAC** | **6.4x** | Benchmark for healthy SaaS: 3x or more |
+| Gross margin | 73% | Gross profit ÷ revenue |
+| Lifetime value (LTV), 5-year horizon | €195,233 | ARPA × gross margin × Σ (1 − churn)ᵗ for t = 0…4 |
+| LTV uncapped | €572,668 | ARPA × gross margin ÷ churn |
+| **LTV / CAC** | **6.3x** | Benchmark for healthy SaaS: 3x or more |
 | **CAC payback** | **8 months** | CAC ÷ monthly gross profit per customer |
 
 <div style="page-break-after: always;"></div>
@@ -375,25 +392,28 @@ The fiscal year is the calendar year. FY2026 is the formation and pilot year.
 | k€ | FY2026 | FY2027 | FY2028 | FY2029 | FY2030 | FY2031 |
 |:--|--:|--:|--:|--:|--:|--:|
 | **Revenue** | **–** | **95** | **534** | **1,829** | **4,630** | **9,173** |
-| Cloud, data and AI | (2) | (3) | (13) | (43) | (102) | (191) |
+| Cloud, data and AI (excl. electricity) | (1) | (2) | (9) | (30) | (72) | (134) |
+| Electricity: data centres, gateways (+40%) | (1) | (1) | (7) | (23) | (57) | (112) |
+| Weekly freight | (0) | (1) | (5) | (17) | (38) | (66) |
 | Customer support | – | (7) | (39) | (139) | (360) | (718) |
 | Sensor field operations | (0) | (2) | (7) | (30) | (85) | (187) |
 | Sensor installation | (4) | (7) | (50) | (168) | (364) | (609) |
 | Sensor fleet depreciation | (1) | (5) | (23) | (93) | (265) | (588) |
-| **Gross profit** | **(7)** | **72** | **402** | **1,356** | **3,454** | **6,880** |
-| Gross margin | n/a | 76% | 75% | 74% | 75% | 75% |
+| **Gross profit** | **(8)** | **71** | **394** | **1,329** | **3,389** | **6,760** |
+| Gross margin | n/a | 75% | 74% | 73% | 73% | 74% |
 | People | (60) | (327) | (636) | (1,097) | (1,639) | (2,211) |
 | Marketing | (5) | (39) | (113) | (303) | (643) | (1,167) |
+| Office electricity (+40%) | (1) | (5) | (8) | (13) | (18) | (24) |
 | Other operating costs | (10) | (45) | (90) | (160) | (230) | (300) |
-| **EBITDA** | **(81)** | **(335)** | **(415)** | **(111)** | **1,207** | **3,789** |
-| EBITDA margin | n/a | -353% | -78% | -6% | 26% | 41% |
+| **EBITDA** | **(83)** | **(341)** | **(431)** | **(152)** | **1,124** | **3,645** |
+| EBITDA margin | n/a | -360% | -81% | -8% | 24% | 40% |
 | Depreciation | (1) | (5) | (23) | (93) | (265) | (588) |
-| EBIT | (82) | (340) | (438) | (204) | 942 | 3,202 |
+| EBIT | (84) | (345) | (453) | (244) | 859 | 3,058 |
 | Grants | – | 150 | 100 | – | – | – |
 | Interest | (3) | (6) | (6) | (5) | (3) | (1) |
-| Profit before tax | (85) | (196) | (344) | (209) | 939 | 3,201 |
-| Corporate tax | – | – | – | – | (16) | (480) |
-| **Net profit** | **(85)** | **(196)** | **(344)** | **(209)** | **923** | **2,721** |
+| Profit before tax | (87) | (201) | (359) | (249) | 856 | 3,057 |
+| Corporate tax | – | – | – | – | – | (452) |
+| **Net profit** | **(87)** | **(201)** | **(359)** | **(249)** | **856** | **2,604** |
 
 Depreciation of the sensor fleet is part of the cost of revenue; it is added back to reach EBITDA.
 
@@ -403,16 +423,16 @@ Depreciation of the sensor fleet is part of the cost of revenue; it is added bac
 
 | k€ | FY2026 | FY2027 | FY2028 | FY2029 | FY2030 | FY2031 |
 |:--|--:|--:|--:|--:|--:|--:|
-| Net profit | (85) | (196) | (344) | (209) | 923 | 2,721 |
+| Net profit | (87) | (201) | (359) | (249) | 856 | 2,604 |
 | Depreciation | 1 | 5 | 23 | 93 | 265 | 588 |
-| Change in working capital | 2 | 70 | 247 | 704 | 1,321 | 1,913 |
-| **Operating cash flow** | **(82)** | **(121)** | **(74)** | **587** | **2,509** | **5,221** |
+| Change in working capital | 0 | 67 | 228 | 646 | 1,211 | 1,752 |
+| **Operating cash flow** | **(86)** | **(129)** | **(109)** | **490** | **2,332** | **4,944** |
 | Sensor fleet capex | (9) | (19) | (126) | (432) | (959) | (1,648) |
-| **Free cash flow** | **(91)** | **(140)** | **(201)** | **156** | **1,550** | **3,573** |
+| **Free cash flow** | **(95)** | **(148)** | **(235)** | **58** | **1,373** | **3,295** |
 | Equity raised | 310 | – | 1,500 | – | – | – |
 | ENISA loan drawn / (repaid) | 150 | – | – | (50) | (50) | (50) |
-| Net change in cash | 369 | (140) | 1,299 | 106 | 1,500 | 3,523 |
-| **Cash at year end** | **369** | **229** | **1,528** | **1,633** | **3,133** | **6,656** |
+| Net change in cash | 365 | (148) | 1,265 | 8 | 1,323 | 3,245 |
+| **Cash at year end** | **365** | **217** | **1,482** | **1,490** | **2,813** | **6,059** |
 
 Annual billing in advance makes working capital a source of cash as the company grows: deferred revenue reaches €5.1M in FY2031.
 
@@ -420,16 +440,17 @@ Annual billing in advance makes working capital a source of cash as the company 
 
 | k€ | FY2026 | FY2027 | FY2028 | FY2029 | FY2030 | FY2031 |
 |:--|--:|--:|--:|--:|--:|--:|
-| Cash | 369 | 229 | 1,528 | 1,633 | 3,133 | 6,656 |
+| Cash | 365 | 217 | 1,482 | 1,490 | 2,813 | 6,059 |
 | Trade receivables | – | 12 | 66 | 225 | 571 | 1,131 |
+| Inventory: kits in stock and spares | 2 | 4 | 23 | 82 | 195 | 360 |
 | Sensor fleet (net) | 8 | 22 | 126 | 465 | 1,159 | 2,219 |
-| **Total assets** | **377** | **262** | **1,719** | **2,324** | **4,863** | **10,007** |
-| Trade payables | 2 | 8 | 26 | 69 | 147 | 261 |
+| **Total assets** | **375** | **254** | **1,696** | **2,262** | **4,737** | **9,769** |
+| Trade payables | 2 | 9 | 26 | 72 | 152 | 271 |
 | Deferred revenue | – | 75 | 358 | 1,178 | 2,767 | 5,126 |
 | ENISA loan | 150 | 150 | 150 | 100 | 50 | – |
 | Paid-in capital | 310 | 310 | 1,810 | 1,810 | 1,810 | 1,810 |
-| Retained earnings | (85) | (281) | (624) | (833) | 90 | 2,810 |
-| **Total liabilities and equity** | **377** | **262** | **1,719** | **2,324** | **4,863** | **10,007** |
+| Retained earnings | (87) | (289) | (648) | (897) | (41) | 2,563 |
+| **Total liabilities and equity** | **375** | **254** | **1,696** | **2,262** | **4,737** | **9,769** |
 
 The balance sheet balances in every year: total assets equal total liabilities and equity.
 
@@ -441,10 +462,10 @@ The balance sheet balances in every year: total assets equal total liabilities a
 |:--|--:|--:|--:|--:|--:|--:|
 | ARR (k€) | – | 166 | 801 | 2,640 | 6,211 | 11,515 |
 | ARR growth | n/a | n/a | 384% | 229% | 135% | 85% |
-| Gross margin | n/a | 76% | 75% | 74% | 75% | 75% |
-| EBITDA margin | n/a | -353% | -78% | -6% | 26% | 41% |
-| Rule of 40 (growth + EBITDA margin) | n/a | n/a | n/a | n/a | 179% | 139% |
-| Burn multiple (net burn ÷ net new ARR) | n/a | 0.85x | 0.32x | n/a | n/a | n/a |
+| Gross margin | n/a | 75% | 74% | 73% | 73% | 74% |
+| EBITDA margin | n/a | -360% | -81% | -8% | 24% | 40% |
+| Rule of 40 (growth + EBITDA margin) | n/a | n/a | n/a | n/a | 177% | 138% |
+| Burn multiple (net burn ÷ net new ARR) | n/a | 0.89x | 0.37x | n/a | n/a | n/a |
 | Revenue per FTE (k€) | – | 15 | 49 | 102 | 178 | 270 |
 | Sales and marketing ÷ revenue | n/a | 109% | 46% | 31% | 23% | 19% |
 
@@ -454,11 +475,11 @@ A burn multiple below 1.5x and a Rule of 40 above 40% are signs of efficient gro
 
 - **EBITDA break-even (monthly run rate):** Aug 2029, found by assuming monthly EBITDA
   grows linearly across FY2029 and FY2030 (see appendix).
-- **First profitable year:** FY2030, EBITDA €1.21M.
-- **Sites needed to cover fixed costs in FY2030:** operating costs of €2.51M
-  ÷ gross profit per average site of €2,872 = **875 sites**,
+- **First profitable year:** FY2030, EBITDA €1.12M.
+- **Sites needed to cover fixed costs in FY2030:** operating costs of €2.53M
+  ÷ gross profit per average site of €2,818 = **898 sites**,
   against 1,202 average sites in the base case.
-- **Lowest year-end cash:** €0.23M in FY2027, just before the seed round.
+- **Lowest year-end cash:** €0.22M in FY2027, just before the seed round.
 
 <div style="page-break-after: always;"></div>
 
@@ -471,11 +492,11 @@ A burn multiple below 1.5x and a Rule of 40 above 40% are signs of efficient gro
 | Annual churn | 12% | **8%** | 6% |
 | Customers | 66 | **110** | 143 |
 | Revenue | €5.0M | **€9.2M** | €12.5M |
-| EBITDA | €0.7M | **€3.8M** | €6.2M |
-| EBITDA margin | 15% | **41%** | 50% |
-| Lowest year-end cash | €0.18M | **€0.23M** | €0.27M |
-| Cash FY2031 | €1.1M | **€6.7M** | €10.9M |
-| DCF value | €0.7M | **€7.1M** | €12.3M |
+| EBITDA | €0.6M | **€3.6M** | €6.0M |
+| EBITDA margin | 13% | **40%** | 48% |
+| Lowest year-end cash | €0.17M | **€0.22M** | €0.26M |
+| Cash FY2031 | €0.7M | **€6.1M** | €10.2M |
+| DCF value | €0.2M | **€6.5M** | €11.5M |
 
 Even in the bear case the company does not run out of cash with the planned funding and
 reaches positive EBITDA by FY2031. The bull case would justify an optional Series A to
@@ -487,11 +508,11 @@ Rows: price versus plan. Columns: customer growth versus plan.
 
 | Price \ Growth | 70% | 85% | 100% | 115% | 130% |
 |:--|--:|--:|--:|--:|--:|
-| 80% | 794 | 1,586 | 2,318 | 3,049 | 3,841 |
-| 90% | 1,309 | 2,215 | 3,054 | 3,891 | 4,797 |
-| 100% | 1,824 | 2,844 | **3,789** | 4,733 | 5,753 |
-| 110% | 2,339 | 3,473 | 4,525 | 5,575 | 6,709 |
-| 120% | 2,854 | 4,103 | 5,261 | 6,417 | 7,666 |
+| 80% | 686 | 1,459 | 2,174 | 2,888 | 3,660 |
+| 90% | 1,201 | 2,088 | 2,910 | 3,729 | 4,617 |
+| 100% | 1,716 | 2,718 | **3,645** | 4,571 | 5,573 |
+| 110% | 2,231 | 3,347 | 4,381 | 5,413 | 6,529 |
+| 120% | 2,746 | 3,976 | 5,117 | 6,255 | 7,486 |
 
 Price has a stronger effect than volume because most costs are fixed: a 10% price change moves FY2031 EBITDA by about €0.74M.
 
@@ -499,7 +520,53 @@ Price has a stronger effect than volume because most costs are fixed: a 10% pric
 
 | Annual churn | 4% | 8% | 12% | 16% |
 |:--|--:|--:|--:|--:|
-| LTV/CAC (5-year horizon) | 7.0x | 6.4x | 5.9x | 5.5x |
+| LTV/CAC (5-year horizon) | 6.8x | 6.3x | 5.8x | 5.4x |
+
+<div style="page-break-after: always;"></div>
+
+### 9.11 Competition rules and their impact
+
+The plan follows the two rules set by the competition in every year of the forecast:
+
+1. **Electricity is 40% more expensive** than the reference tariff.
+2. **Shipping is available only one day a week.**
+
+**Electricity cost**
+
+| k€ | FY2026 | FY2027 | FY2028 | FY2029 | FY2030 | FY2031 |
+|:--|--:|--:|--:|--:|--:|--:|
+| Electricity at the reference tariff | 1.6 | 4.2 | 10.4 | 25.5 | 53.9 | 96.9 |
+| Extra cost from the +40% rule | 0.7 | 1.7 | 4.1 | 10.2 | 21.6 | 38.7 |
+| **Total electricity** | **2.3** | **5.9** | **14.5** | **35.7** | **75.5** | **135.6** |
+| Electricity ÷ revenue | n/a | 6.2% | 2.7% | 2.0% | 1.6% | 1.5% |
+
+**Weekly shipping**
+
+| k€ | FY2026 | FY2027 | FY2028 | FY2029 | FY2030 | FY2031 |
+|:--|--:|--:|--:|--:|--:|--:|
+| Inventory held (kits in stock and spares) | 2 | 4 | 23 | 82 | 195 | 360 |
+| Extra inventory versus shipping any day | 1 | 3 | 18 | 66 | 158 | 297 |
+| Weekly freight | 0 | 1 | 5 | 17 | 38 | 66 |
+
+**The plan with and without the rules**
+
+| | Without the rules | **With the rules** | Difference |
+|:--|--:|--:|--:|
+| EBITDA FY2029 | (€0.14M) | **(€0.15M)** | (€0.01M) |
+| EBITDA FY2031 | €3.68M | **€3.65M** | (€0.04M) |
+| Gross margin FY2031 | 74.0% | **73.7%** | (0.3 pts) |
+| Lowest year-end cash | €0.22M | **€0.22M** | (€0.01M) |
+| Cash FY2031 | €6.42M | **€6.06M** | (€0.36M) |
+| DCF value | €6.86M | **€6.46M** | (€0.40M) |
+| EBITDA break-even month | Aug 2029 | **Aug 2029** | |
+
+**What this means.** PyraGrid is a software company, so electricity is a small share of
+its costs: even at +40% it is 1.5% of revenue in FY2031. The weekly
+shipping rule mainly ties up cash in stock rather than adding cost; the company answers it
+with planned installation days, local stock and spares on every site. Together the two
+rules reduce EBITDA over the six years by €0.08M and do not
+change the funding plan or the first profitable year.
+
 
 <div style="page-break-after: always;"></div>
 
@@ -509,10 +576,10 @@ Price has a stronger effect than volume because most costs are fixed: a 10% pric
 
 | Sources | k€ | Uses | k€ |
 |:--|--:|:--|--:|
-| Founders' capital | 10 | Operating losses FY2026–FY2028 (EBITDA) | 831 |
+| Founders' capital | 10 | Operating losses FY2026–FY2028 (EBITDA) | 854 |
 | Pre-seed (business angels, programme) | 300 | Sensor fleet capex FY2026–FY2028 | 154 |
-| ENISA participative loan | 150 | Interest and tax, less the cash from annual billing in advance | (303) |
-| Innovation grants (e.g. CDTI, regional) | 250 | Cash at end of FY2028 | 1,528 |
+| ENISA participative loan | 150 | Interest and tax, less the cash from annual billing in advance | (280) |
+| Innovation grants (e.g. CDTI, regional) | 250 | Cash at end of FY2028 | 1,482 |
 | Seed round | 1,500 | | |
 | **Total** | **2,210** | **Total** | **2,210** |
 
@@ -569,24 +636,24 @@ Free cash flow is discounted at **25%**, a venture-stage rate that reflects exec
 
 | k€ | FY2027 | FY2028 | FY2029 | FY2030 | FY2031 |
 |:--|--:|--:|--:|--:|--:|
-| Free cash flow | (140) | (201) | 156 | 1,550 | 3,573 |
+| Free cash flow | (148) | (235) | 58 | 1,373 | 3,295 |
 | Discount factor | 0.800 | 0.640 | 0.512 | 0.410 | 0.328 |
-| Present value | (112) | (129) | 80 | 635 | 1,171 |
+| Present value | (119) | (151) | 30 | 563 | 1,080 |
 
 | Component | k€ |
 |:--|--:|
-| Present value of FY2027–FY2031 free cash flow | 1,645 |
-| Terminal value at FY2031 (FCF × (1 + g) ÷ (WACC − g)) | 16,728 |
-| Present value of terminal value | 5,481 |
-| **Enterprise value (DCF)** | **7,126** |
+| Present value of FY2027–FY2031 free cash flow | 1,403 |
+| Terminal value at FY2031 (FCF × (1 + g) ÷ (WACC − g)) | 15,429 |
+| Present value of terminal value | 5,056 |
+| **Enterprise value (DCF)** | **6,459** |
 
 **Sensitivity of the DCF value (k€)**
 
 | Discount rate \ Terminal growth | 2% | 3% | 4% |
 |:--|--:|--:|--:|
-| 20% | 10,154 | 10,717 | 11,350 |
-| 25% | 6,837 | **7,126** | 7,443 |
-| 30% | 4,855 | 5,020 | 5,198 |
+| 20% | 9,238 | 9,757 | 10,342 |
+| 25% | 6,192 | **6,459** | 6,751 |
+| 30% | 4,375 | 4,527 | 4,692 |
 
 ### 11.2 Market multiples
 
@@ -598,7 +665,7 @@ worth €22.6M today at the same 25% discount rate.
 
 | Method | Value today |
 |:--|--:|
-| DCF (Gordon terminal value) | €7.1M |
+| DCF (Gordon terminal value) | €6.5M |
 | ARR multiple exit, discounted (6x FY2031 ARR) | €22.6M |
 | Seed post-money used in this plan | €7.5M |
 
@@ -619,6 +686,8 @@ investor return, which supports it as a fair entry valuation.
 | Large incumbents copy the product | Medium | Medium | Speed, focus on asset owners, partner network, protocol lock-in |
 | Satellite data access changes | Low | Medium | Several sources (NASA FIRMS, Copernicus); ground sensors reduce dependence |
 | Funding delay | Medium | High | Public funding (ENISA, grants); bear case survives on planned funding; cost levers in hiring |
+| Electricity prices rise beyond +40% | Medium | Low | Solar-powered sensors; fixed-price cloud contracts; electricity is a small share of costs |
+| Weekly shipping delays a repair or an installation | High | Medium | 6 weeks of kits in stock; 2 spares on every site; installations planned around delivery day |
 | Data protection and security | Low | High | EU hosting, per-customer data isolation, role-based access, audit log |
 
 ## 13. Milestones and roadmap
@@ -663,9 +732,17 @@ half-year convention in the first and last year.
 first two years with a positive tax base (Spanish rate for new companies), 25% afterwards.
 The 70% offset limit for large bases is ignored, as it does not bind at this scale.
 
-**Working capital.** Receivables = revenue × 45 ÷ 365. Payables = non-payroll cash
+**Working capital.** Inventory as in the shipping rule above. Receivables = revenue × 45 ÷ 365. Payables = non-payroll cash
 costs × 30 ÷ 365. Deferred revenue = 45% of annual
 subscription run rate at year end (annual billing in advance, renewals spread through the year).
+
+**Electricity (+40% rule).** Electricity = (cloud and AI cost × 30%
++ average sensor sites × 150 kWh × €0.20
++ FTE × 2,500 kWh × €0.20) × 1.4.
+
+**Weekly shipping rule.** Inventory = sensor purchases in the year × 6 ÷ 52
++ sensor sites × 2 spares × sensor cost. Inventory is part of working
+capital, so it reduces cash but not profit. Freight = 4% of sensor purchases.
 
 **Break-even month.** Monthly EBITDA is modelled as m(t) = a + b·t over the 24 months of
 FY2029 and FY2030, fitted so that each year's 12 months add up to its annual

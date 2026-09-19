@@ -14,6 +14,9 @@ A, Y = M.A, M.YEARS
 B = M.run()
 BEAR = M.run(growth_factor=0.6, price_factor=0.9, churn=0.12)
 BULL = M.run(growth_factor=1.3, price_factor=1.05, churn=0.06)
+# the same plan without the two competition rules (normal tariff, shipping any day)
+FREE = dict(A, elec_surcharge=0.0, stock_weeks=2, spare_sensors_per_site=0)
+B0 = M.run(FREE)
 PB = '\n<div style="page-break-after: always;"></div>\n'
 
 
@@ -75,12 +78,20 @@ min_cash_year = Y[B["cash"].index(min_cash)]
 # unit economics (FY2029, the first year at scale)
 u = 3
 price_site = B["blended"][u]
-site_cost = A["cloud_per_site"] + A["llm_per_site"] + A["support_pct"] * price_site
+EF = 1 + A["elec_surcharge"]
+dc_share = A["dc_energy_share"]
+site_cloud = A["cloud_per_site"] * (1 - dc_share)
+site_llm = A["llm_per_site"] * (1 - dc_share)
+site_elec = (A["cloud_per_site"] + A["llm_per_site"]) * dc_share * EF
+site_cost = site_cloud + site_llm + site_elec + A["support_pct"] * price_site
 site_margin = price_site - site_cost
 kit = A["sensors_per_site"] * A["sensor_unit_cost"] + A["gateway_cost"]
-sensor_upfront = kit + A["install_cost"]
-sensor_repl = A["sensor_replacement"] * A["sensors_per_site"] * A["sensor_unit_cost"]
-sensor_contrib = A["sensor_fee"] - A["sensor_opex"] - A["support_pct"] * A["sensor_fee"] - sensor_repl
+spares = A["spare_sensors_per_site"] * A["sensor_unit_cost"]
+kit_freight = A["freight_pct"] * kit
+sensor_upfront = kit + kit_freight + spares + A["install_cost"]
+sensor_repl = A["sensor_replacement"] * A["sensors_per_site"] * A["sensor_unit_cost"] * (1 + A["freight_pct"])
+gw_elec = A["gateway_kwh"] * A["elec_price"] * EF
+sensor_contrib = A["sensor_fee"] - A["sensor_opex"] - gw_elec - A["support_pct"] * A["sensor_fee"] - sensor_repl
 sensor_payback_m = sensor_upfront / sensor_contrib * 12
 sensor_irr = M.irr([-sensor_upfront] + [sensor_contrib] * A["sensor_life"])
 avg_cust = (B["customers"][u - 1] + B["customers"][u]) / 2
@@ -197,6 +208,7 @@ Essential, {eur(A['price_pro'])} Professional), optional Sensor-as-a-Service
 | Team (FTE) | {n(B['fte'][1])} | {n(B['fte'][3])} | {n(B['fte'][5])} |
 
 - **Break-even:** monthly EBITDA turns positive around **{be_label}**; FY{Y[be_year]} is the first profitable year.
+- **Competition rules included:** electricity {pct(A['elec_surcharge'])} more expensive and shipping only one day a week are built into every year of the model (section 9.11).
 - **Funding:** {m(A['preseed'], 2)} pre-seed plus an ENISA participative loan ({m(A['enisa_loan'], 2)}) and innovation grants ({m(sum(A['grant']), 2)}) fund the pilots; a **{m(A['seed'])} seed round** in Q1 2028 takes the company to profitability. The lowest year-end cash balance is {m(min_cash, 2)} (FY{min_cash_year}).
 - **Unit economics:** a platform site earns a {pct(site_margin / price_site)} contribution margin; a sensor site pays back in {sensor_payback_m:.0f} months; LTV/CAC is {ltv / cac:.1f}x and the cost of winning a customer is paid back in {cac_payback:.0f} months.
 - **Valuation:** {m(dcf)} on a discounted cash flow at a {pct(A['wacc'])} venture discount rate; {m(pv_exit)} present value of a {A['arr_multiple']:.0f}x ARR exit in 2031.
@@ -394,6 +406,16 @@ reduced salaries until the seed round.
   {eur(A['sensor_unit_cost'])} per sensor, {eur(kit)} per site kit including the gateway.
 - **Field operations:** installation by trained local contractors ({eur(A['install_cost'])} per site),
   annual inspection and battery service ({eur(A['sensor_opex'])} per site per year).
+- **Weekly shipping (competition rule):** carriers collect and deliver only one day a week,
+  so hardware cannot be sent next day. PyraGrid plans installations around the weekly
+  delivery, keeps {A['stock_weeks']} weeks of sensor kits in stock and leaves
+  {A['spare_sensors_per_site']} spare sensors on every sensor site, so a failed sensor is
+  swapped the same day by the local contractor instead of waiting for the next shipment.
+- **Electricity (competition rule):** electricity costs {pct(A['elec_surcharge'])} more than
+  the reference tariff of €{A['elec_price']:.2f} per kWh. The model applies this to
+  data-centre power (about {pct(A['dc_energy_share'])} of cloud and AI cost), gateway power
+  on sensor sites and office power. Sensors run on solar cells and batteries, so the field
+  network does not depend on the grid.
 {PB}
 ## 9. Financial plan
 
@@ -415,6 +437,8 @@ The fiscal year is the calendar year. FY2026 is the formation and pilot year.
 | Sensor fleet | Capitalised, straight-line over {A['sensor_life']} years (half-year convention); {pct(A['sensor_replacement'])} of sensors replaced each year | |
 | Marketing | Fixed programme plus {pct(A['marketing_pct'])} of revenue | |
 | Working capital | Receivables {A['dso_days']} days; payables {A['dpo_days']} days; deferred revenue {pct(A['deferred_share'])} of annual subscription | |
+| **Rule: electricity** | Tariff €{A['elec_price']:.2f}/kWh **+{pct(A['elec_surcharge'])}** = €{A['elec_price'] * EF:.2f}/kWh; data-centre share of cloud cost {pct(A['dc_energy_share'])}; {A['gateway_kwh']} kWh per sensor site; {A['office_kwh_per_fte']:,} kWh per employee | Every year |
+| **Rule: shipping** | **One shipping day a week**: {A['stock_weeks']} weeks of kits in stock, {A['spare_sensors_per_site']} spare sensors per sensor site, freight {pct(A['freight_pct'])} of hardware bought | Every year |
 | Tax | Spanish corporate tax: 15% for the first two profitable years, then 25%; losses carried forward | |
 | Public funding | ENISA participative loan {m(A['enisa_loan'], 2)} at {pct(A['enisa_rate'])}, repaid FY2029–FY2031; innovation grants {m(sum(A['grant']), 2)} | |
 """)
@@ -445,8 +469,9 @@ w(f"""### 9.3 Unit economics
 | | € per site per year |
 |:--|--:|
 | Blended subscription price | {eur(price_site)} |
-| Cloud hosting and data | ({eur(A['cloud_per_site'])[1:]}) |
-| AI inference | ({eur(A['llm_per_site'])[1:]}) |
+| Cloud hosting and data (excluding electricity) | ({eur(site_cloud)[1:]}) |
+| AI inference (excluding electricity) | ({eur(site_llm)[1:]}) |
+| Data-centre electricity, +40% tariff | ({eur(site_elec)[1:]}) |
 | Customer support ({pct(A['support_pct'])}) | ({eur(A['support_pct'] * price_site)[1:]}) |
 | **Contribution per site** | **{eur(site_margin)}** |
 | **Contribution margin** | **{pct(site_margin / price_site)}** |
@@ -456,12 +481,15 @@ w(f"""### 9.3 Unit economics
 | | € |
 |:--|--:|
 | Hardware kit ({A['sensors_per_site']} sensors and gateway) | {eur(kit)} |
+| Weekly consolidated freight ({pct(A['freight_pct'])}) | {eur(kit_freight)} |
+| Spare sensors left on site ({A['spare_sensors_per_site']}) | {eur(spares)} |
 | Installation | {eur(A['install_cost'])} |
 | **Upfront investment** | **{eur(sensor_upfront)}** |
 | Annual fee | {eur(A['sensor_fee'])} |
 | Field service, connectivity and batteries | ({eur(A['sensor_opex'])[1:]}) |
+| Gateway electricity, +40% tariff | ({eur(gw_elec)[1:]}) |
 | Support ({pct(A['support_pct'])}) | ({eur(A['support_pct'] * A['sensor_fee'])[1:]}) |
-| Sensor replacement ({pct(A['sensor_replacement'])} per year) | ({eur(sensor_repl)[1:]}) |
+| Sensor replacement ({pct(A['sensor_replacement'])} per year, with freight) | ({eur(sensor_repl)[1:]}) |
 | **Annual contribution** | **{eur(sensor_contrib)}** |
 | **Payback** | **{sensor_payback_m:.0f} months** |
 | **IRR over the {A['sensor_life']}-year sensor life** | **{pct(sensor_irr)}** |
@@ -483,7 +511,9 @@ w(f"""### 9.3 Unit economics
 w("### 9.4 Income statement\n")
 w(head())
 w(row("Revenue", rev, bold=True))
-w(row("Cloud, data and AI", [-v for v in B["cogs_cloud"]]))
+w(row("Cloud, data and AI (excl. electricity)", [-v for v in B["cogs_cloud"]]))
+w(row("Electricity: data centres, gateways (+40%)", [-v for v in B["cogs_energy"]]))
+w(row("Weekly freight", [-v for v in B["cogs_freight"]]))
 w(row("Customer support", [-v for v in B["cogs_support"]]))
 w(row("Sensor field operations", [-v for v in B["cogs_sensor_ops"]]))
 w(row("Sensor installation", [-v for v in B["cogs_install"]]))
@@ -492,6 +522,7 @@ w(row("Gross profit", B["gross"], bold=True))
 w(row("Gross margin", gm, lambda v: pct(v)))
 w(row("People", [-v for v in B["opex_people"]]))
 w(row("Marketing", [-v for v in B["opex_marketing"]]))
+w(row("Office electricity (+40%)", [-v for v in B["opex_energy"]]))
 w(row("Other operating costs", [-v for v in B["opex_other"]]))
 w(row("EBITDA", ebitda, bold=True))
 w(row("EBITDA margin", em, lambda v: pct(v)))
@@ -527,6 +558,7 @@ w("\n### 9.6 Balance sheet (year end)\n")
 w(head())
 w(row("Cash", B["cash"]))
 w(row("Trade receivables", B["ar"]))
+w(row("Inventory: kits in stock and spares", B["inventory"]))
 w(row("Sensor fleet (net)", B["fleet_net"]))
 w(row("Total assets", B["assets"], bold=True))
 w(row("Trade payables", B["ap"]))
@@ -604,6 +636,59 @@ w("\nPrice has a stronger effect than volume because most costs are fixed: a 10%
 w("\n**Sensitivity of LTV/CAC to churn (FY2029)**\n")
 w("| Annual churn | 4% | 8% | 12% | 16% |\n|:--|--:|--:|--:|--:|")
 w("| LTV/CAC (5-year horizon) | " + " | ".join(f"{ltv_at(c) / cac:.1f}x" for c in [0.04, 0.08, 0.12, 0.16]) + " |")
+w(PB)
+
+
+# ---- 9.11 competition rules
+def be_of(r):
+    e = r["ebitda"]
+    y = next(i for i in range(1, M.N) if e[i] > 0)
+    sl = (e[y] - e[y - 1]) / 144
+    t = -(e[y - 1] / 12 - sl * 6.5) / sl
+    mo = int(t) + 1
+    return f"{['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][(mo - 1) % 12]} {Y[y - 1] + (mo - 1) // 12}"
+
+
+elec_total = [B["cogs_energy"][i] + B["opex_energy"][i] for i in range(M.N)]
+w("### 9.11 Competition rules and their impact\n")
+w(f"""The plan follows the two rules set by the competition in every year of the forecast:
+
+1. **Electricity is {pct(A['elec_surcharge'])} more expensive** than the reference tariff.
+2. **Shipping is available only one day a week.**
+
+**Electricity cost**
+""")
+w(head())
+w(row("Electricity at the reference tariff", [v / EF for v in elec_total], lambda v: k(v, 1)))
+w(row("Extra cost from the +40% rule", B["elec_extra"], lambda v: k(v, 1)))
+w(row("Total electricity", elec_total, lambda v: k(v, 1), bold=True))
+w(row("Electricity ÷ revenue", [elec_total[i] / rev[i] if rev[i] else float("nan") for i in range(M.N)], lambda v: pct(v, 1)))
+w("\n**Weekly shipping**\n")
+w(head())
+w(row("Inventory held (kits in stock and spares)", B["inventory"]))
+w(row("Extra inventory versus shipping any day", [B["inventory"][i] - B0["inventory"][i] for i in range(M.N)]))
+w(row("Weekly freight", B["cogs_freight"]))
+w("\n**The plan with and without the rules**\n")
+w("| | Without the rules | **With the rules** | Difference |\n|:--|--:|--:|--:|")
+for label, v0, v1, f in [
+    ("EBITDA FY2029", B0["ebitda"][3], ebitda[3], lambda v: m(v, 2)),
+    ("EBITDA FY2031", B0["ebitda"][5], ebitda[5], lambda v: m(v, 2)),
+    ("Gross margin FY2031", B0["gross"][5] / B0["revenue"][5], gm[5], lambda v: pct(v, 1)),
+    ("Lowest year-end cash", min(B0["cash"][1:]), min_cash, lambda v: m(v, 2)),
+    ("Cash FY2031", B0["cash"][5], B["cash"][5], lambda v: m(v, 2)),
+    ("DCF value", M.valuation(B0)[3], dcf, lambda v: m(v, 2)),
+]:
+    d = f"({(v0 - v1) * 100:.1f} pts)" if "margin" in label else f(v1 - v0)
+    w(f"| {label} | {f(v0)} | **{f(v1)}** | {d} |")
+w(f"| EBITDA break-even month | {be_of(B0)} | **{be_label}** | |")
+w(f"""
+**What this means.** PyraGrid is a software company, so electricity is a small share of
+its costs: even at +40% it is {pct(elec_total[5] / rev[5], 1)} of revenue in FY2031. The weekly
+shipping rule mainly ties up cash in stock rather than adding cost; the company answers it
+with planned installation days, local stock and spares on every site. Together the two
+rules reduce EBITDA over the six years by {m(sum(B0['ebitda']) - sum(ebitda), 2)} and do not
+change the funding plan or the first profitable year.
+""")
 w(PB)
 
 # ---- 10 funding
@@ -719,6 +804,8 @@ investor return, which supports it as a fair entry valuation.
 | Large incumbents copy the product | Medium | Medium | Speed, focus on asset owners, partner network, protocol lock-in |
 | Satellite data access changes | Low | Medium | Several sources (NASA FIRMS, Copernicus); ground sensors reduce dependence |
 | Funding delay | Medium | High | Public funding (ENISA, grants); bear case survives on planned funding; cost levers in hiring |
+| Electricity prices rise beyond +40% | Medium | Low | Solar-powered sensors; fixed-price cloud contracts; electricity is a small share of costs |
+| Weekly shipping delays a repair or an installation | High | Medium | {A['stock_weeks']} weeks of kits in stock; {A['spare_sensors_per_site']} spares on every site; installations planned around delivery day |
 | Data protection and security | Low | High | EU hosting, per-customer data isolation, role-based access, audit log |
 
 ## 13. Milestones and roadmap
@@ -761,9 +848,17 @@ half-year convention in the first and last year.
 first two years with a positive tax base (Spanish rate for new companies), 25% afterwards.
 The 70% offset limit for large bases is ignored, as it does not bind at this scale.
 
-**Working capital.** Receivables = revenue × {A['dso_days']} ÷ 365. Payables = non-payroll cash
+**Working capital.** Inventory as in the shipping rule above. Receivables = revenue × {A['dso_days']} ÷ 365. Payables = non-payroll cash
 costs × {A['dpo_days']} ÷ 365. Deferred revenue = {pct(A['deferred_share'])} of annual
 subscription run rate at year end (annual billing in advance, renewals spread through the year).
+
+**Electricity (+40% rule).** Electricity = (cloud and AI cost × {pct(A['dc_energy_share'])}
++ average sensor sites × {A['gateway_kwh']} kWh × €{A['elec_price']:.2f}
++ FTE × {A['office_kwh_per_fte']:,} kWh × €{A['elec_price']:.2f}) × {EF:.1f}.
+
+**Weekly shipping rule.** Inventory = sensor purchases in the year × {A['stock_weeks']} ÷ 52
++ sensor sites × {A['spare_sensors_per_site']} spares × sensor cost. Inventory is part of working
+capital, so it reduces cash but not profit. Freight = {pct(A['freight_pct'])} of sensor purchases.
 
 **Break-even month.** Monthly EBITDA is modelled as m(t) = a + b·t over the 24 months of
 FY{Y[be_year - 1]} and FY{Y[be_year]}, fitted so that each year's 12 months add up to its annual

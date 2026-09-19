@@ -1,0 +1,2 @@
+Put your logo file here (for example logo.png or logo.svg),
+then open frontend/src/brand.ts and set:  logo: "/brand/logo.png"

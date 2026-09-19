@@ -3,6 +3,8 @@ import { NavLink, useNavigate } from "react-router-dom";
 import { api } from "../api/client";
 import { STAFF_ROLES, type DataSource } from "../api/types";
 import { useAuth } from "../state/AuthContext";
+import { BRAND } from "../brand";
+import { BrandMark } from "./BrandMark";
 
 const SOURCE_LABEL: Record<DataSource, string> = {
   firms_sp: "NASA FIRMS", firms_nrt: "NASA FIRMS (NRT)", synthetic_fallback: "Synthetic demo data",
@@ -35,8 +37,8 @@ export function TopBar() {
     <header style={{ position: "sticky", top: 0, zIndex: 30, backdropFilter: "blur(14px)", background: "rgba(8,8,10,0.72)", borderBottom: "1px solid var(--border)" }}>
       <div className="container" style={{ display: "flex", alignItems: "center", gap: 20, height: 62 }}>
         <NavLink to={NAV[0].to} className="row" style={{ gap: 10 }}>
-          <span style={{ width: 26, height: 26, borderRadius: 8, background: "linear-gradient(135deg, var(--ember), var(--ember-2))", boxShadow: "0 0 16px var(--ember-glow)" }} />
-          <span className="display" style={{ fontSize: 20 }}>Ember</span>
+          <BrandMark size={26} />
+          <span className="display" style={{ fontSize: 20 }}>{BRAND.name}</span>
         </NavLink>
         <nav className="row" style={{ gap: 4, marginLeft: 8, flex: 1 }}>
           {NAV.map((n) => (

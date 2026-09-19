@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../state/AuthContext";
+import { BRAND } from "../brand";
+import { BrandMark } from "../components/BrandMark";
 import { Embers } from "./Embers";
 import { FirePlay } from "./FirePlay";
 import { ScrollScenario } from "./ScrollScenario";
@@ -33,7 +35,7 @@ export function LandingPage() {
         <Embers />
         <div className="lp-hero-shade" />
         <nav className="lp-nav">
-          <span className="lp-brand"><span className="lp-mark" aria-hidden />Ember</span>
+          <span className="lp-brand"><BrandMark size={22} />{BRAND.name}</span>
           <Link to="/login" className="lp-link">Sign in</Link>
         </nav>
         <div className="lp-hero-copy">

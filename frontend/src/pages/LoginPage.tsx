@@ -2,6 +2,8 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { useAuth } from "../state/AuthContext";
+import { BRAND } from "../brand";
+import { BrandMark } from "../components/BrandMark";
 
 const DEMO = [
   ["admin@demo.eu", "company admin"],
@@ -35,12 +37,12 @@ export function LoginPage() {
         <motion.div initial={{ opacity: 0, scale: 1.1 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 1.4 }}
           style={{ position: "absolute", inset: 0, zIndex: -1, background: "radial-gradient(40rem 40rem at 30% 20%, rgba(255,90,31,0.22), transparent 55%), radial-gradient(30rem 30rem at 80% 90%, rgba(198,40,40,0.2), transparent 55%)" }} />
         <div className="row" style={{ gap: 12 }}>
-          <span style={{ width: 30, height: 30, borderRadius: 9, background: "linear-gradient(135deg, var(--ember), var(--ember-2))", boxShadow: "0 0 22px var(--ember-glow)" }} />
-          <span className="display" style={{ fontSize: 24 }}>Ember</span>
+          <BrandMark size={30} />
+          <span className="display" style={{ fontSize: 24 }}>{BRAND.name}</span>
         </div>
         <div>
           <motion.div className="eyebrow" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
-            Wildfire Asset Intelligence
+            {BRAND.tagline}
           </motion.div>
           <motion.h1 className="display" initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}
             style={{ fontSize: "clamp(38px, 6vw, 74px)", margin: "14px 0" }}>

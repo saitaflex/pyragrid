@@ -4,6 +4,9 @@ import { BrowserRouter } from "react-router-dom";
 import "maplibre-gl/dist/maplibre-gl.css";
 import "./index.css";
 import App from "./App";
+import { BRAND } from "./brand";
+
+document.title = `${BRAND.name} — ${BRAND.tagline}`;
 import { AuthProvider } from "./state/AuthContext";
 import { TimeProvider } from "./state/TimeContext";
 

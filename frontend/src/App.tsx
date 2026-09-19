@@ -5,6 +5,7 @@ import { Footer } from "./components/Disclaimer";
 import { Banner } from "./components/Banner";
 import { RequireAuth, StaffOnly } from "./components/RouteGuards";
 import { DrillBanner } from "./components/DrillBanner";
+import { ToastStack } from "./components/Toasts";
 import { useSyncExternalStore } from "react";
 import { USE_MOCKS, offlineStore } from "./api/client";
 import { LoginPage } from "./pages/LoginPage";
@@ -23,6 +24,7 @@ import { SensorsPage } from "./pages/SensorsPage";
 import { SituationPage } from "./pages/SituationPage";
 import { DrillsPage } from "./pages/DrillsPage";
 import { DrillPage } from "./pages/DrillPage";
+import { SimulatePage } from "./pages/SimulatePage";
 
 function Layout() {
   const loc = useLocation();
@@ -33,6 +35,7 @@ function Layout() {
       <Banner show={USE_MOCKS} tone="info">Mock mode — interactive demo data. Every screen runs without a backend.</Banner>
       <Banner show={!USE_MOCKS && offline} tone="warn">Engine offline — showing built-in demo data until it is reachable again.</Banner>
       <div className="no-print"><DrillBanner /></div>
+      <ToastStack />
       <AnimatePresence mode="wait">
         <motion.main key={loc.pathname} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} transition={{ duration: 0.25 }} style={{ flex: 1 }}>
           <Outlet />
@@ -63,6 +66,7 @@ export default function App() {
             <Route path="/history" element={<HistoryPage />} />
             <Route path="/drills" element={<DrillsPage />} />
             <Route path="/drills/:drillId" element={<DrillPage />} />
+            <Route path="/simulate" element={<SimulatePage />} />
             <Route path="/assets" element={<AssetsPage />} />
             <Route path="/rules" element={<RulesPage />} />
             <Route path="/system" element={<SystemPage />} />

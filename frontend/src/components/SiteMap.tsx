@@ -18,6 +18,8 @@ const style: StyleSpecification = {
 
 /** Anything with a position and a level can be drawn as a site marker. */
 export interface MapSite { site_id: string; lat: number; lon: number; level: Level; value_eur?: number | null }
+/** A simulated fire: burned area, burning head, 0..1 intensity (how serious it is). */
+export interface MapFire { perimeter: [number, number][]; front: [number, number][]; intensity: number }
 /** Free markers, e.g. the signals of a training drill. */
 export interface MapMark { lat: number; lon: number; label: string; color: string }
 
@@ -80,6 +82,16 @@ function estimateFC(est: FireEstimate[]) {
     ]),
   } as GeoJSON.FeatureCollection;
 }
+function fireFC(f: MapFire | null) {
+  if (!f || f.perimeter.length < 3) return { type: "FeatureCollection", features: [] } as GeoJSON.FeatureCollection;
+  return {
+    type: "FeatureCollection",
+    features: [
+      { type: "Feature", geometry: { type: "Polygon", coordinates: [f.perimeter] }, properties: { part: "burn" } },
+      { type: "Feature", geometry: { type: "LineString", coordinates: f.front }, properties: { part: "front", i: f.intensity } },
+    ],
+  } as GeoJSON.FeatureCollection;
+}
 function markFC(marks: MapMark[]) {
   return {
     type: "FeatureCollection",
@@ -87,15 +99,17 @@ function markFC(marks: MapMark[]) {
   } as GeoJSON.FeatureCollection;
 }
 
-export function SiteMap({ sites, detections, sensors = [], estimates = [], marks = [], center = [-7.25, 42.28] as [number, number], zoom = 8.6, onSelect, height = 460 }: {
+export function SiteMap({ sites, detections, sensors = [], estimates = [], marks = [], fire = null, onMapClick, center = [-7.25, 42.28] as [number, number], zoom = 8.6, onSelect, height = 460 }: {
   sites: MapSite[]; detections: Detection[]; sensors?: SensorNode[]; estimates?: FireEstimate[]; marks?: MapMark[];
-  center?: [number, number]; zoom?: number; onSelect?: (id: string) => void; height?: number;
+  fire?: MapFire | null; onMapClick?: (lon: number, lat: number) => void;
+  center?: [number, number]; zoom?: number; onSelect?: (id: string) => void; height?: number | string;
 }) {
   const box = useRef<HTMLDivElement>(null);
   const map = useRef<maplibregl.Map | null>(null);
   const ready = useRef(false);
-  const latest = useRef({ sites, detections, sensors, estimates, marks });
-  latest.current = { sites, detections, sensors, estimates, marks };
+  const pulse = useRef(0);
+  const latest = useRef({ sites, detections, sensors, estimates, marks, fire, onMapClick });
+  latest.current = { sites, detections, sensors, estimates, marks, fire, onMapClick };
 
   useEffect(() => {
     if (!box.current || map.current) return;
@@ -111,6 +125,14 @@ export function SiteMap({ sites, detections, sensors = [], estimates = [], marks
       m.addSource("est", { type: "geojson", data: estimateFC(cur.estimates) });
       m.addLayer({ id: "est-fill", type: "fill", source: "est", filter: ["==", ["get", "part"], "area"], paint: { "fill-color": "#FF3B30", "fill-opacity": 0.14 } });
       m.addLayer({ id: "est-line", type: "line", source: "est", filter: ["==", ["get", "part"], "area"], paint: { "line-color": "#FF3B30", "line-width": 2, "line-dasharray": [2, 1.5] } });
+      // simulated fire: charred area, then a glowing head whose width follows the intensity
+      m.addSource("fire", { type: "geojson", data: fireFC(cur.fire) });
+      m.addLayer({ id: "fire-burn", type: "fill", source: "fire", filter: ["==", ["get", "part"], "burn"], paint: { "fill-color": "#1A120D", "fill-opacity": 0.82 } });
+      m.addLayer({ id: "fire-edge", type: "line", source: "fire", filter: ["==", ["get", "part"], "burn"], paint: { "line-color": "#7A2E10", "line-width": 1.2, "line-opacity": 0.9 } });
+      m.addLayer({ id: "fire-glow", type: "line", source: "fire", filter: ["==", ["get", "part"], "front"], layout: { "line-cap": "round", "line-join": "round" },
+        paint: { "line-color": "#FF5A1F", "line-blur": ["+", 6, ["*", 14, ["get", "i"]]], "line-width": ["+", 6, ["*", 22, ["get", "i"]]], "line-opacity": 0.55 } });
+      m.addLayer({ id: "fire-front", type: "line", source: "fire", filter: ["==", ["get", "part"], "front"], layout: { "line-cap": "round", "line-join": "round" },
+        paint: { "line-color": ["interpolate", ["linear"], ["get", "i"], 0, "#FF8A3D", 1, "#FFC66B"], "line-width": ["+", 1.5, ["*", 4, ["get", "i"]]] } });
       m.addSource("dets", { type: "geojson", data: detFC(cur.detections) });
       m.addLayer({ id: "dets-glow", type: "circle", source: "dets", paint: { "circle-radius": 9, "circle-color": "#ff6a1f", "circle-blur": 1, "circle-opacity": 0.55 } });
       m.addLayer({ id: "dets-core", type: "circle", source: "dets", paint: { "circle-radius": 2.4, "circle-color": "#ffd28a", "circle-opacity": 0.9 } });
@@ -128,9 +150,24 @@ export function SiteMap({ sites, detections, sensors = [], estimates = [], marks
       });
       m.addLayer({ id: "est-centre", type: "circle", source: "est", filter: ["==", ["get", "part"], "centre"], paint: { "circle-radius": 7, "circle-color": "#FF3B30", "circle-stroke-width": 2.5, "circle-stroke-color": "#fff" } });
       m.addSource("sites", { type: "geojson", data: sitesFC(cur.sites) });
+      // sites at High or Critical breathe, so they are found at a glance
+      m.addLayer({ id: "sites-pulse", type: "circle", source: "sites", filter: ["in", ["get", "level"], ["literal", ["HIGH", "CRITICAL"]]],
+        paint: { "circle-radius": ["+", ["get", "r"], 8], "circle-color": "rgba(0,0,0,0)", "circle-stroke-color": ["get", "color"], "circle-stroke-width": 2, "circle-stroke-opacity": 0.6 } });
       m.addLayer({ id: "sites-halo", type: "circle", source: "sites", paint: { "circle-radius": ["+", ["get", "r"], 6], "circle-color": ["get", "color"], "circle-opacity": 0.16 } });
       m.addLayer({ id: "sites-core", type: "circle", source: "sites", paint: { "circle-radius": ["get", "r"], "circle-color": ["get", "color"], "circle-stroke-width": 1.5, "circle-stroke-color": "rgba(255,255,255,0.85)" } });
       m.on("click", "sites-core", (e) => { const id = e.features?.[0]?.properties?.site_id; if (id && onSelect) onSelect(String(id)); });
+      m.on("click", (e) => { latest.current.onMapClick?.(e.lngLat.lng, e.lngLat.lat); });
+      if (!window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+        const t0 = performance.now();
+        const breathe = () => {
+          if (!map.current) return;
+          const k = ((performance.now() - t0) / 1600) % 1;                 // 0..1 every 1.6 s
+          m.setPaintProperty("sites-pulse", "circle-radius", ["+", ["get", "r"], 6 + 16 * k]);
+          m.setPaintProperty("sites-pulse", "circle-stroke-opacity", 0.7 * (1 - k));
+          pulse.current = requestAnimationFrame(breathe);
+        };
+        pulse.current = requestAnimationFrame(breathe);
+      }
       for (const layer of ["sensors", "est-centre"]) {
         m.on("click", layer, (e) => {
           const f = e.features?.[0];
@@ -147,7 +184,7 @@ export function SiteMap({ sites, detections, sensors = [], estimates = [], marks
       }
       ready.current = true;
     });
-    return () => { m.remove(); map.current = null; ready.current = false; };
+    return () => { cancelAnimationFrame(pulse.current); m.remove(); map.current = null; ready.current = false; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -160,7 +197,8 @@ export function SiteMap({ sites, detections, sensors = [], estimates = [], marks
     (m.getSource("sense") as maplibregl.GeoJSONSource | undefined)?.setData(senseFC(sensors));
     (m.getSource("est") as maplibregl.GeoJSONSource | undefined)?.setData(estimateFC(estimates));
     (m.getSource("marks") as maplibregl.GeoJSONSource | undefined)?.setData(markFC(marks));
-  }, [sites, detections, sensors, estimates, marks]);
+    (m.getSource("fire") as maplibregl.GeoJSONSource | undefined)?.setData(fireFC(fire));
+  }, [sites, detections, sensors, estimates, marks, fire]);
 
   return <div ref={box} style={{ height, width: "100%", borderRadius: "var(--radius)", overflow: "hidden", border: "1px solid var(--border)" }} />;
 }

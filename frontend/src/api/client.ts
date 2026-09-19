@@ -5,8 +5,9 @@ import type {
   AckResponse, AdvisorResponse, Alert, AuditEntry, DecisionRecord, Detection, HandoffPack,
   Health, ImportReport, Incident, IngestionRun, LoginResponse, OutboxEmail, Portfolio, Site,
   SiteStatus, SopRule, SopRuleInput, SourceStatus, TimelinePoint, User, ReplaySummary,
-  SensorsResponse, Situation, StaffUser, DrillView, DrillScenario,
+  SensorsResponse, Situation, StaffUser, DrillView, DrillScenario, SimAdvice,
 } from "./types";
+import type { Conditions, FireState } from "../sim/firesim";
 
 // Unset in a production build → same origin (the root Vercel project serves the Engine at /api).
 export const BASE = import.meta.env.VITE_API_BASE_URL ?? (import.meta.env.DEV ? "http://localhost:8000" : "");
@@ -200,6 +201,13 @@ const mock = {
   ackDrill: (_id: string): Promise<DrillView> => needsEngine(),
   respondDrill: (_id: string, _actions: string[], _note: string): Promise<DrillView> => needsEngine(),
   endDrill: (_id: string): Promise<DrillView> => needsEngine(),
+  simAdvice: (_siteId: string, _c: Conditions, _st: SimStateBody): Promise<SimAdvice> => needsEngine(),
+  simComplete: (_body: { site_id: string; summary: string; actions_done: string[]; actions_total: number; duration_s: number }): Promise<void> => needsEngine(),
+};
+
+/** What the simulator sends to the AI: the numbers, not the drawn shapes. */
+export type SimStateBody = Omit<FireState, "perimeter" | "front" | "ignition" | "reached"> & {
+  sensors_fire: number; sensors_warm: number; sensors_offline: number;
 };
 
 function needsEngine(): Promise<never> {
@@ -286,6 +294,8 @@ const live: typeof mock = {
   ackDrill: (id) => req("POST", `/drills/${encodeURIComponent(id)}/ack`),
   respondDrill: (id, actions, note) => req("POST", `/drills/${encodeURIComponent(id)}/respond`, { body: { actions, note } }),
   endDrill: (id) => req("POST", `/drills/${encodeURIComponent(id)}/end`),
+  simAdvice: (siteId, conditions, state) => req("POST", "/simulate/advice", { body: { site_id: siteId, conditions, state } }),
+  simComplete: (body) => req("POST", "/simulate/complete", { body }),
 };
 
 // ---- offline state: live calls that cannot reach the Engine fall back to mocks ----

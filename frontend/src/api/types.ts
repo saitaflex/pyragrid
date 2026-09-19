@@ -326,3 +326,10 @@ export interface DrillView {
   notifications: { to: string; channel: "in_app" | "email"; subject: string }[];
   nodes: SensorNode[]; fire_estimate: FireEstimate | null; disclaimer: string;
 }
+
+// ---- "fire reported now" simulator ----
+export interface SimAdvice {
+  generated_by: AdvisorEngine; model: string | null; suggestions: AdvisorSuggestion[]; evidence_keys: string[];
+  rejected_by_guardrails: number; fallback_reason: string | null; protocol_actions: string[];
+  access_routes: Record<string, RouteStatus>; disclaimer: string;
+}

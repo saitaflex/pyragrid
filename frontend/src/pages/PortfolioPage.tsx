@@ -9,6 +9,7 @@ import { StatTile } from "../components/StatTile";
 import { LevelBadge } from "../components/LevelBadge";
 import { Reveal } from "../components/Reveal";
 import { eur, SITE_TYPE_LABEL } from "../api/levels";
+import { Embers } from "../landing/Embers";
 
 export function PortfolioPage() {
   const { step } = useTime();
@@ -21,7 +22,10 @@ export function PortfolioPage() {
   return (
     <div className="page">
       <div className="container grid" style={{ gap: 18 }}>
-        <div className="between wrap">
+        <div className="between wrap page-head-fire">
+          {/* embers rise faster the more sites are critical: calm when all is well */}
+          <Embers key={pf?.counts.CRITICAL ?? 0} aspect={0} fireX={0.5} fireY={1.15} spread={1}
+            rate={pf ? 6 + pf.counts.CRITICAL * 14 + pf.counts.HIGH * 3 : 0} className="head-embers" />
           <div>
             <div className="eyebrow">Portfolio</div>
             <h1 className="display" style={{ fontSize: "clamp(30px,4vw,46px)" }}>Operations overview</h1>

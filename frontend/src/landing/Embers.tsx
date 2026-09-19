@@ -1,8 +1,12 @@
 import { useEffect, useRef } from "react";
 
-/** Embers rising from the burning ridge of the hero photo. (fireX, fireY) is where the fire
- *  is in the photo, as fractions of its size. Pauses off screen; nothing for reduced motion. */
-export function Embers({ fireX = 0.55, fireY = 0.33, aspect = 16 / 9 }: { fireX?: number; fireY?: number; aspect?: number }) {
+/** Embers rising from a fire. (fireX, fireY) is where the fire is, as fractions of the photo
+ *  (aspect > 0, cover-fitted) or of the box itself (aspect = 0, `spread` = fraction of its width
+ *  they rise from). `rate` = how many embers are alive at once. Pauses off screen; nothing for
+ *  reduced motion. */
+export function Embers({ fireX = 0.55, fireY = 0.33, aspect = 16 / 9, spread = 0.16, rate = 90, className = "lp-embers" }: {
+  fireX?: number; fireY?: number; aspect?: number; spread?: number; rate?: number; className?: string;
+}) {
   const ref = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
@@ -16,15 +20,17 @@ export function Embers({ fireX = 0.55, fireY = 0.33, aspect = 16 / 9 }: { fireX?
       c.width = w * dpr; c.height = h * dpr;
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
       // same maths as CSS background-size: cover; background-position: 50% 40%
-      const rw = Math.max(w, h * aspect), rh = rw / aspect;
-      ox = (w - rw) * 0.5 + fireX * rw;
-      oy = (h - rh) * 0.4 + fireY * rh;
+      if (aspect > 0) {
+        const rw = Math.max(w, h * aspect), rh = rw / aspect;
+        ox = (w - rw) * 0.5 + fireX * rw;
+        oy = (h - rh) * 0.4 + fireY * rh;
+      } else { ox = w * fireX; oy = h * fireY; }
     };
     resize();
     type P = { x: number; y: number; vx: number; vy: number; life: number; max: number; r: number };
     const ps: P[] = [];
     const spawn = (): P => ({
-      x: ox + (Math.random() - 0.5) * Math.min(w * 0.16, 260), y: oy + Math.random() * 12,
+      x: ox + (Math.random() - 0.5) * (aspect > 0 ? Math.min(w * spread, 260) : w * spread), y: oy + Math.random() * 12,
       vx: -0.15 - Math.random() * 0.35, vy: -0.25 - Math.random() * 0.55,
       life: 0, max: 160 + Math.random() * 200, r: 0.6 + Math.random() * 1.6,
     });
@@ -32,7 +38,7 @@ export function Embers({ fireX = 0.55, fireY = 0.33, aspect = 16 / 9 }: { fireX?
       raf = requestAnimationFrame(tick);
       if (!visible) return;
       ctx.clearRect(0, 0, w, h);
-      if (ps.length < 90) ps.push(spawn());
+      if (ps.length < rate && Math.random() < 0.5 + rate / 200) ps.push(spawn());
       for (let i = ps.length - 1; i >= 0; i--) {
         const p = ps[i];
         p.life++; p.x += p.vx + Math.sin(p.life / 23) * 0.25; p.y += p.vy;
@@ -51,7 +57,7 @@ export function Embers({ fireX = 0.55, fireY = 0.33, aspect = 16 / 9 }: { fireX?
     io.observe(c);
     window.addEventListener("resize", resize);
     return () => { cancelAnimationFrame(raf); io.disconnect(); window.removeEventListener("resize", resize); };
-  }, [fireX, fireY, aspect]);
+  }, [fireX, fireY, aspect, spread, rate]);
 
-  return <canvas ref={ref} className="lp-embers" aria-hidden />;
+  return <canvas ref={ref} className={className} aria-hidden />;
 }

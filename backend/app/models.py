@@ -576,3 +576,53 @@ class DrillView(BaseModel):
     nodes: list[SensorNode]
     fire_estimate: Optional[FireEstimate]
     disclaimer: str
+
+
+# ---------------------------------------------------------------- "fire reported now" simulation
+class SimConditions(BaseModel):
+    wind_kmh: float
+    wind_from_deg: int
+    temp_c: float
+    rh_pct: float
+    fuel: FuelClass
+    ignition_km: float
+    ignition_bearing_deg: int
+
+
+class SimState(BaseModel):
+    minutes: int
+    level: Level
+    front_km: float                 # head of the fire to the site fence
+    eta_min: Optional[int]          # minutes until the front reaches the fence at this pace
+    head_ros_m_min: float           # head rate of spread
+    burned_ha: float
+    fire_moving_toward_site: bool
+    sensors_fire: int = 0
+    sensors_warm: int = 0
+    sensors_offline: int = 0
+
+
+class SimAdviceRequest(BaseModel):
+    site_id: str
+    conditions: SimConditions
+    state: SimState
+
+
+class SimAdviceResponse(BaseModel):
+    generated_by: AdvisorEngine
+    model: Optional[str]
+    suggestions: list[AdvisorSuggestion]
+    evidence_keys: list[str]
+    rejected_by_guardrails: int
+    fallback_reason: Optional[str]
+    protocol_actions: list[str]
+    access_routes: dict[str, RouteStatus]
+    disclaimer: str
+
+
+class SimCompleteRequest(BaseModel):
+    site_id: str
+    summary: str
+    actions_done: list[str]
+    actions_total: int
+    duration_s: int

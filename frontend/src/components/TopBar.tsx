@@ -51,6 +51,9 @@ export function TopBar() {
           ))}
         </nav>
         <div className="row" style={{ gap: 14 }}>
+          {user && STAFF_ROLES.includes(user.role) && (
+            <NavLink to="/simulate" className="btn sm report-fire" title="Simulate a fire reported right now">Report a fire</NavLink>
+          )}
           <div className="tag-src" style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", lineHeight: 1.2 }}>
             <span style={{ color: "var(--ember-2)" }}>{SOURCE_LABEL[src]}</span>
             <span className="mute">rules-1.0</span>

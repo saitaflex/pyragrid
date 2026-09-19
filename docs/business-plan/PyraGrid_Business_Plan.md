@@ -30,12 +30,13 @@
 7. [Go-to-market strategy](#7-go-to-market-strategy)
 8. [Operations and team](#8-operations-and-team)
 9. [Financial plan](#9-financial-plan)
-10. [Funding and capital structure](#10-funding-and-capital-structure)
-11. [Valuation](#11-valuation)
-12. [Risks and mitigation](#12-risks-and-mitigation)
-13. [Milestones and roadmap](#13-milestones-and-roadmap)
-14. [Impact](#14-impact)
-15. [Appendix: methodology and formulas](#15-appendix-methodology-and-formulas)
+10. [KPIs and performance targets](#10-kpis-and-performance-targets)
+11. [Funding and capital structure](#11-funding-and-capital-structure)
+12. [Valuation](#12-valuation)
+13. [Risks and mitigation](#13-risks-and-mitigation)
+14. [Milestones and roadmap](#14-milestones-and-roadmap)
+15. [Impact](#15-impact)
+16. [Appendix: methodology and formulas](#16-appendix-methodology-and-formulas)
 
 <div style="page-break-after: always;"></div>
 
@@ -68,6 +69,8 @@ Essential, €3,600 Professional), optional Sensor-as-a-Service
 | EBITDA | (€0.34M) | (€0.15M) | €3.6M |
 | EBITDA margin | -360% | -8% | 40% |
 | Team (FTE) | 6 | 18 | 34 |
+
+<!-- chart:growth -->
 
 - **Break-even:** monthly EBITDA turns positive around **Aug 2029**; FY2030 is the first profitable year.
 - **Competition rules included:** electricity 40% more expensive and shipping only one day a week are built into every year of the model (section 9.11).
@@ -165,6 +168,8 @@ The FY2031 base case reaches **10.6% of the Iberian SAM**, a
 realistic share for a specialist leader five years after launch. Revenue per site in the
 TAM and SAM rows is a blended planning figure (platform tiers plus sensor attach).
 
+<!-- chart:market -->
+
 ### 4.3 Market drivers
 
 - **Climate:** longer and more intense fire seasons across the Mediterranean.
@@ -180,21 +185,71 @@ TAM and SAM rows is a blended planning figure (platform tiers plus sensor attach
 
 ## 5. Competition and positioning
 
-| | Public satellite services (FIRMS, EFFIS) | Satellite analytics start-ups | Ground sensor networks | Camera detection networks | **PyraGrid** |
+### 5.1 Landscape
+
+Wildfire technology is growing fast, but almost every company solves **one step**: seeing
+the fire. PyraGrid solves the step after it: **what a company with sites must do now**.
+The market has five groups.
+
+| | Public satellite data | Satellite analytics | Camera networks | Ground sensor networks | **PyraGrid** |
 |:--|:--|:--|:--|:--|:--|
-| Detects fires across the region | Yes | Yes | No | Partial | **Yes (satellite)** |
+| Detects fires across the region | Yes | Yes | Partial | No | **Yes (satellite)** |
 | Risk score per customer site | No | Partial | No | No | **Yes** |
-| Confirms fire on the ground, night and cloud | No | No | Yes | Partial | **Yes (optional sensors)** |
+| Confirms fire at night and under cloud | No | Partial | Partial | Yes | **Yes (sensors)** |
 | Company protocol and actions | No | No | No | No | **Yes** |
 | AI advisor with human approval | No | No | No | No | **Yes** |
-| Shared view for fire service and agencies | Public only | No | Partial | Partial | **Yes, per-role policy** |
+| Shared view for fire services | Public only | No | Partial | Partial | **Yes, per role** |
 | Drills and training | No | No | No | No | **Yes** |
-| Price | Free | High, enterprise | Hardware-led | Hardware-led | **Per site, from €1,800/yr** |
+| Typical price | Free | Enterprise contract | Hardware project | Hardware project | **From €1,800 per site/yr** |
 
-**Positioning:** PyraGrid does not compete with public satellite data; it uses it. It sits
-one level up, as the operational layer an asset owner needs to act, and it integrates
-detection sources rather than betting on one. Sensor and camera providers are potential
-data partners.
+### 5.2 Main competitors
+
+| Company (base) | What they do | Strengths | Limits for a site owner | PyraGrid's stance |
+|:--|:--|:--|:--|:--|
+| **NASA FIRMS, Copernicus EFFIS** (USA, EU) | Free satellite hotspots and fire-danger maps | Free, wide coverage, trusted by agencies | Not per site; pixels of 375 m to 1 km; no workflow | Data source we build on |
+| **OroraTech** (Germany) | Thermal satellite constellation and wildfire monitoring platform | Dedicated fire satellites, government contracts | Wide-area view; no site procedures or drills | Possible data partner |
+| **Pano AI** (USA) | AI cameras on high points that alert utilities and fire agencies | Fast visual detection, utility references | Camera towers needed per region; US and Australia focus | Competes in utilities; camera feed can be an input |
+| **Dryad Networks** (Germany) | Solar-powered gas sensors in a forest mesh network (Silvanet) | Very early detection of smouldering fires | Many sensors per hectare; detection only | Closest to our sensor layer; partner or rival |
+| **IQ FireWatch** (Germany) | Optical camera towers that detect smoke | Proven in forests for many years | Tower cost; detection only | Data input |
+| **Technosylva** (Spain, USA) | Fire spread modelling and risk analytics | Deep fire science | Large projects; mostly large US utilities | We serve mid-size owners faster |
+| **Overstory** (Netherlands) | Satellite vegetation intelligence for utilities | Strong prevention analytics | Planning tool, not live incident response | Complementary |
+| **Everbridge and similar** (USA) | Critical event and mass notification platforms | Enterprise reach | Not fire-specific: no fire position, risk or sensors | Integration target |
+
+*Based on public company information as of 2026. Competitor features change quickly and
+are re-checked before each investor meeting.*
+
+### 5.3 Positioning map
+
+<!-- chart:positioning -->
+
+PyraGrid sits in the top-right corner: it combines several data sources and turns them into
+the company's response. The other players focus on detection, planning or generic alerts;
+none of them combines all three for a site owner.
+
+### 5.4 Buying criteria (score 1 to 5, team assessment)
+
+| Criterion (weight) | Public data | Satellite analytics | Cameras | Sensors | **PyraGrid** |
+|:--|--:|--:|--:|--:|--:|
+| Risk for my exact sites (25%) | 1 | 3 | 2 | 2 | **5** |
+| Ground confirmation (15%) | 1 | 2 | 3 | 5 | **4** |
+| Response workflow and protocols (25%) | 1 | 1 | 1 | 1 | **5** |
+| Sharing with fire services (10%) | 3 | 1 | 3 | 2 | **5** |
+| Time to go live (15%) | 5 | 3 | 1 | 2 | **4** |
+| Cost for 20 sites (10%) | 5 | 2 | 1 | 2 | **4** |
+| **Weighted score** | **2.2** | **2.1** | **1.8** | **2.2** | **4.6** |
+
+### 5.5 How we stay ahead
+
+- **Integrate, do not compete, on detection.** New satellites and cameras make PyraGrid
+  better, because it fuses any source. Detection companies become suppliers.
+- **Own the workflow.** Protocols, contacts, audit logs and drill history are the
+  customer's operating memory, and they are hard to move.
+- **Win the public side.** Fire services use the shared view for free; every agency
+  connected makes the next asset owner easier to sign.
+- **Iberia first.** Spanish and Portuguese customers, language, regulation (CSRD) and
+  field partners before larger US players focus on Southern Europe.
+- **If a detection company adds site alerts,** PyraGrid still leads on protocols, drills,
+  multi-agency sharing and sensor-confirmed fire position, and can use that company's feed.
 
 <div style="page-break-after: always;"></div>
 
@@ -339,6 +394,8 @@ The fiscal year is the calendar year. FY2026 is the formation and pilot year.
 | Annual recurring revenue (year end) | – | 166 | 801 | 2,640 | 6,211 | 11,515 |
 | Revenue growth | n/a | n/a | 464% | 242% | 153% | 98% |
 
+<!-- chart:mix -->
+
 <div style="page-break-after: always;"></div>
 
 ### 9.3 Unit economics
@@ -434,6 +491,8 @@ Depreciation of the sensor fleet is part of the cost of revenue; it is added bac
 | Net change in cash | 365 | (148) | 1,265 | 8 | 1,323 | 3,245 |
 | **Cash at year end** | **365** | **217** | **1,482** | **1,490** | **2,813** | **6,059** |
 
+<!-- chart:cash -->
+
 Annual billing in advance makes working capital a source of cash as the company grows: deferred revenue reaches €5.1M in FY2031.
 
 ### 9.6 Balance sheet (year end)
@@ -500,7 +559,7 @@ A burn multiple below 1.5x and a Rule of 40 above 40% are signs of efficient gro
 
 Even in the bear case the company does not run out of cash with the planned funding and
 reaches positive EBITDA by FY2031. The bull case would justify an optional Series A to
-enter France and Italy earlier (section 10.4).
+enter France and Italy earlier (section 11.4).
 
 ### 9.10 Sensitivity: FY2031 EBITDA (k€)
 
@@ -570,9 +629,90 @@ change the funding plan or the first profitable year.
 
 <div style="page-break-after: always;"></div>
 
-## 10. Funding and capital structure
+## 10. KPIs and performance targets
 
-### 10.1 Sources and uses, FY2026–FY2028
+PyraGrid runs on a small set of measurable targets. They are reviewed every month by the
+management team and reported every quarter to investors and the board.
+
+**North-star metric: sites protected with a tested response plan.** A site counts when it
+is monitored, has an approved protocol, and has run at least one drill in the last year.
+It grows with revenue and with real safety at the same time.
+
+### 10.1 KPI dashboard (base case)
+
+<!-- kpi-cards -->
+
+### 10.2 Growth and commercial KPIs
+
+| KPI | Definition | FY2027 | FY2029 | FY2031 |
+|:--|:--|--:|--:|--:|
+| Customers | Paying customers at year end | 6 | 40 | 110 |
+| Sites protected | Monitored sites at year end | 60 | 760 | 2,860 |
+| ARR | Annual recurring revenue at year end | €0.17M | €2.64M | €11.5M |
+| ARR per customer | ARR ÷ customers | €27,600 | €66,000 | €104,686 |
+| New customers | Won in the year | 6 | 23 | 46 |
+| Gross revenue retention | 1 − customer churn | pilot year | 92% | 92% |
+| Net revenue retention | Churn, site expansion and price, existing customers | pilot year | 133% | 106% |
+| Sensor attach rate | Sites with sensors ÷ all sites | 15% | 25% | 35% |
+| Professional share | Sites on the Professional tier | 40% | 55% | 62% |
+| Pipeline coverage | Qualified pipeline ÷ next year's new ARR target | 3.0x | 3.0x | 3.0x |
+| Win rate | Won ÷ qualified opportunities | 20% | 25% | 30% |
+| Sales cycle | First meeting to signed contract | ≤ 9 months | ≤ 6 months | ≤ 5 months |
+
+### 10.3 Unit economics and efficiency KPIs
+
+| KPI | Definition | FY2027 | FY2029 | FY2031 |
+|:--|:--|--:|--:|--:|
+| Gross margin | Gross profit ÷ revenue | 75% | 73% | 74% |
+| EBITDA margin | EBITDA ÷ revenue | -360% | -8% | 40% |
+| LTV / CAC | See section 9.3 | – | 6.3x | – |
+| CAC payback | Months of gross profit to repay CAC | – | 8 months | – |
+| Burn multiple | Net burn ÷ net new ARR | 0.89x | cash positive | cash positive |
+| Revenue per employee | Revenue ÷ FTE | €14,585 | €101,587 | €269,787 |
+| Cash runway | Cash ÷ monthly free-cash burn | 18 months | cash positive | cash positive |
+| Electricity ÷ revenue | Includes the +40% tariff rule | 6.2% | 2.0% | 1.5% |
+| Inventory cover | Weeks of sensor kits in stock (weekly shipping rule) | 6 weeks | 6 weeks | 6 weeks |
+
+### 10.4 Product and operational KPIs (targets)
+
+| KPI | Definition | FY2027 | FY2029 | FY2031 |
+|:--|:--|--:|--:|--:|
+| Satellite-to-alert time | Hotspot published → customer alerted | ≤ 5 min | ≤ 2 min | ≤ 1 min |
+| Sensor alert latency | Sensor reading → alert on screen | ≤ 60 s | ≤ 30 s | ≤ 30 s |
+| Fire position accuracy | Uncertainty radius on sensor sites | ≤ 150 m | ≤ 100 m | ≤ 75 m |
+| False alarm rate | Alerts dismissed as not a fire | ≤ 15% | ≤ 8% | ≤ 5% |
+| Alert acknowledged | Median time until a person responds | ≤ 10 min | ≤ 5 min | ≤ 3 min |
+| AI suggestions approved | Approved without changes by the operator | ≥ 60% | ≥ 70% | ≥ 75% |
+| Platform availability | Monthly uptime | 99.5% | 99.9% | 99.9% |
+| Sensor network uptime | Sensors reporting on time | ≥ 97% | ≥ 98.5% | ≥ 99% |
+| Sensor repair time | Fault → working again (spares on site) | ≤ 2 days | ≤ 1 day | ≤ 1 day |
+| Drill participation | Site staff completing a drill each year | ≥ 70% | ≥ 85% | ≥ 90% |
+
+### 10.5 Impact KPIs
+
+| KPI | FY2027 | FY2029 | FY2031 |
+|:--|--:|--:|--:|
+| Sites protected | 60 | 760 | 2,860 |
+| Sites with ground sensors | 9 | 190 | 1,001 |
+| Fire services and agencies connected (target) | 3 | 15 | 40 |
+| People trained through drills (target) | 150 | 1,500 | 6,000 |
+| Rural field jobs supported (installers, service) | 2 | 8 | 20 |
+
+### 10.6 Reporting
+
+| Rhythm | Audience | Content |
+|:--|:--|:--|
+| Weekly | Team | Pipeline, alerts, sensor health, open incidents, stock level |
+| Monthly | Management | Full KPI dashboard, cash, budget against actual |
+| Quarterly | Board and investors | KPI dashboard, financial statements, forecast update, risks |
+| Yearly | Customers and partners | Impact report: sites protected, drills, response times |
+
+
+<div style="page-break-after: always;"></div>
+
+## 11. Funding and capital structure
+
+### 11.1 Sources and uses, FY2026–FY2028
 
 | Sources | k€ | Uses | k€ |
 |:--|--:|:--|--:|
@@ -583,7 +723,7 @@ change the funding plan or the first profitable year.
 | Seed round | 1,500 | | |
 | **Total** | **2,210** | **Total** | **2,210** |
 
-### 10.2 Use of the seed round (€1.5M)
+### 11.2 Use of the seed round (€1.5M)
 
 | Use | Share | k€ |
 |:--|--:|--:|
@@ -594,7 +734,7 @@ change the funding plan or the first profitable year.
 | Working capital and contingency | 5% | 75 |
 | **Total** | **100%** | **1,500** |
 
-### 10.3 Capitalisation table
+### 11.3 Capitalisation table
 
 | Shareholder | After pre-seed (FY2026) | After seed (FY2028) |
 |:--|--:|--:|
@@ -608,12 +748,12 @@ change the funding plan or the first profitable year.
 
 The option pool is created before the seed round (included in the pre-money valuation).
 
-### 10.4 Optional Series A
+### 11.4 Optional Series A
 
 If the bull case materialises, a Series A of about €4–6M in FY2029–FY2030 would fund entry
 into France, Italy and Greece. It is not needed for the base case, which is self-funding from FY2030.
 
-### 10.5 Investor returns (exit at year-end FY2031)
+### 11.5 Investor returns (exit at year-end FY2031)
 
 Exit value = FY2031 ARR (€11.5M) × ARR multiple. No further dilution assumed.
 
@@ -628,9 +768,9 @@ Holding periods: seed 3.75 years (Q1 2028 to end of 2031), pre-seed 5.5 years (m
 
 <div style="page-break-after: always;"></div>
 
-## 11. Valuation
+## 12. Valuation
 
-### 11.1 Discounted cash flow
+### 12.1 Discounted cash flow
 
 Free cash flow is discounted at **25%**, a venture-stage rate that reflects execution risk (a mature SaaS company would use 10–12%). Terminal value uses the Gordon growth model with **3%** long-term growth.
 
@@ -655,13 +795,13 @@ Free cash flow is discounted at **25%**, a venture-stage rate that reflects exec
 | 25% | 6,192 | **6,459** | 6,751 |
 | 30% | 4,375 | 4,527 | 4,692 |
 
-### 11.2 Market multiples
+### 12.2 Market multiples
 
 Listed and private vertical SaaS companies with growth above 40% are commonly valued at
 5–10x ARR. Applying 6x to FY2031 ARR gives an exit value of €69.1M,
 worth €22.6M today at the same 25% discount rate.
 
-### 11.3 Summary
+### 12.3 Summary
 
 | Method | Value today |
 |:--|--:|
@@ -674,7 +814,7 @@ investor return, which supports it as a fair entry valuation.
 
 <div style="page-break-after: always;"></div>
 
-## 12. Risks and mitigation
+## 13. Risks and mitigation
 
 | Risk | Likelihood | Impact | Mitigation |
 |:--|:--|:--|:--|
@@ -690,7 +830,7 @@ investor return, which supports it as a fair entry valuation.
 | Weekly shipping delays a repair or an installation | High | Medium | 6 weeks of kits in stock; 2 spares on every site; installations planned around delivery day |
 | Data protection and security | Low | High | EU hosting, per-customer data isolation, role-based access, audit log |
 
-## 13. Milestones and roadmap
+## 14. Milestones and roadmap
 
 | When | Milestone |
 |:--|:--|
@@ -703,7 +843,7 @@ investor return, which supports it as a fair entry valuation.
 | FY2030 | First profitable year; entry into southern France and Italy through partners |
 | FY2031 | 110 customers, 2,860 sites, ARR €11.5M |
 
-## 14. Impact
+## 15. Impact
 
 - **Lives and safety:** earlier warning and clear procedures for people working on remote sites.
 - **Climate resilience:** protects the renewable energy and grid assets the energy transition depends on.
@@ -714,7 +854,7 @@ investor return, which supports it as a fair entry valuation.
 
 <div style="page-break-after: always;"></div>
 
-## 15. Appendix: methodology and formulas
+## 16. Appendix: methodology and formulas
 
 **Revenue.** Platform revenue = average sites in the year × blended price. Average sites =
 (opening + closing sites) ÷ 2. Blended price = Essential price × (1 − Professional share)
@@ -754,11 +894,16 @@ EBITDA. The break-even month is where m(t) = 0.
 loaded: (sales and marketing + 50% of customer success + 30% of founders' time) ÷ new
 customers in the year. The five-year horizon keeps LTV conservative for a young company.
 
+**Net revenue retention.** (1 − churn) × (sites per customer this year ÷ last year) × (blended
+price this year ÷ last year): the revenue change from existing customers only, assuming
+they grow to the average number of sites.
+
 **IRR.** The discount rate at which the net present value of the cash flows is zero,
 solved numerically.
 
 **Source of every figure.** All tables are generated from `model.py` in the same folder;
-changing an assumption and running `python build_plan.py` regenerates this document.
+changing an assumption and running `python build_plan.py` (Markdown) or `python build_pdf.py`
+(designed PDF) regenerates this document.
 
 ---
 

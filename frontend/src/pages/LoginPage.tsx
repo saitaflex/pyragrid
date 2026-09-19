@@ -37,7 +37,7 @@ export function LoginPage() {
         <motion.div initial={{ opacity: 0, scale: 1.1 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 1.4 }}
           style={{ position: "absolute", inset: 0, zIndex: -1, background: "radial-gradient(40rem 40rem at 30% 20%, rgba(255,90,31,0.22), transparent 55%), radial-gradient(30rem 30rem at 80% 90%, rgba(198,40,40,0.2), transparent 55%)" }} />
         <div className="row" style={{ gap: 12 }}>
-          <BrandMark size={30} />
+          <BrandMark size={44} />
           <span className="display" style={{ fontSize: 24 }}>{BRAND.name}</span>
         </div>
         <div>

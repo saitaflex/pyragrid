@@ -181,3 +181,4 @@
   .ss-steps button { padding: 6px 4px; font-size: 12px; }
 }
 @media (prefers-reduced-motion: reduce) { .ss-card { transition: none; } }
+.lp-nav-links { display: flex; gap: 20px; align-items: center; }

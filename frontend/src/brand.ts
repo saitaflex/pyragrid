@@ -5,10 +5,11 @@
 //      a square image works best, at least 128 x 128 px).
 //   2. Set `logo` below to "/brand/<your file name>", e.g. "/brand/logo.png".
 // Leave `logo` empty to show the default orange mark.
-// The browser-tab icon is frontend/public/favicon.svg: replace that file too if you want.
+// The browser-tab icon is frontend/public/brand/favicon.png (set in frontend/index.html).
+// logo.png, favicon.png and apple-touch-icon.png are square copies of "PyraGrid - LOGO.png".
 
 export const BRAND = {
-  name: "Ember",
+  name: "PyraGrid",
   tagline: "Wildfire Asset Intelligence",
-  logo: "",
+  logo: "/brand/logo.png",
 };

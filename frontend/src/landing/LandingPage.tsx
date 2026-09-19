@@ -35,8 +35,11 @@ export function LandingPage() {
         <Embers />
         <div className="lp-hero-shade" />
         <nav className="lp-nav">
-          <span className="lp-brand"><BrandMark size={22} />{BRAND.name}</span>
-          <Link to="/login" className="lp-link">Sign in</Link>
+          <span className="lp-brand"><BrandMark size={36} />{BRAND.name}</span>
+          <span className="lp-nav-links">
+            <a href="/intro.html" className="lp-link">Watch the intro</a>
+            <Link to="/login" className="lp-link">Sign in</Link>
+          </span>
         </nav>
         <div className="lp-hero-copy">
           <h1>Know where the fire is before it reaches your site.</h1>

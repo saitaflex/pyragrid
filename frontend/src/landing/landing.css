@@ -101,13 +101,6 @@
 .fp-legend { display: flex; flex-wrap: wrap; gap: 14px; font-size: 13px; color: var(--smoke); }
 .fp-legend span { display: inline-flex; gap: 6px; align-items: center; }
 
-/* ---- steps: a real sequence, so it is numbered ---- */
-.lp-steps ol { list-style: none; counter-reset: s; display: grid; grid-template-columns: repeat(5, 1fr); gap: 0; margin-top: 28px; border-top: 1px solid var(--line); }
-.lp-steps li { counter-increment: s; padding: 22px 20px 0 0; display: grid; gap: 8px; align-content: start; position: relative; }
-.lp-steps li::before { content: counter(s); font-family: var(--display); font-weight: 800; font-size: 15px; color: var(--ember-soft); position: absolute; top: -12px; background: var(--night); padding-right: 10px; }
-.lp-steps strong { font-family: var(--display); font-size: 19px; color: var(--ash); }
-.lp-steps span { color: #BDB7AE; font-size: 15px; }
-
 /* ---- photo + text ---- */
 .lp-split { display: grid; grid-template-columns: 1fr 1fr; gap: clamp(28px, 5vw, 72px); align-items: center; }
 .lp-split > div > p { margin-bottom: 24px; }
@@ -134,9 +127,6 @@
 @media (max-width: 960px) {
   .fp, .lp-split { grid-template-columns: 1fr; }
   .lp-split.reverse > figure { order: -1; }
-  .lp-steps ol { grid-template-columns: 1fr; border-top: 0; border-left: 1px solid var(--line); }
-  .lp-steps li { padding: 0 0 22px 28px; }
-  .lp-steps li::before { top: 0; left: -8px; padding: 0 4px; }
   .lp-roles { grid-template-columns: 1fr 1fr; }
 }
 @media (max-width: 560px) {
@@ -147,3 +137,47 @@
 @media (prefers-reduced-motion: reduce) {
   .lp-hero-img, .lp-hero-copy h1, .lp-hero-copy > p, .lp-cta, .fp-flicker, .fp-hint { animation: none; }
 }
+
+/* ---- scroll-driven incident: text on the left scrolls, the map on the right stays ---- */
+.ss { display: grid; grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.25fr); gap: clamp(24px, 4vw, 56px); margin-top: 28px; }
+.ss-sticky { grid-column: 2; grid-row: 1; position: sticky; top: 0; height: 100svh; display: flex; flex-direction: column; justify-content: center; gap: 14px; }
+.ss-text { grid-column: 1; grid-row: 1; }
+.ss-visual { position: relative; border-radius: 18px; overflow: hidden; border: 1px solid var(--line); background: #1A232A; }
+.ss-canvas { display: block; width: 100%; aspect-ratio: 16 / 10; }
+.ss-hud { position: absolute; left: 12px; top: 12px; right: 12px; display: flex; flex-wrap: wrap; gap: 6px 14px; align-items: center;
+  font-size: 13px; color: var(--ash); text-shadow: 0 1px 3px rgba(0, 0, 0, .8); font-variant-numeric: tabular-nums; }
+.ss-level { color: #0F1519; font-weight: 700; padding: 3px 10px; border-radius: 999px; text-transform: capitalize; text-shadow: none; transition: background .4s; }
+.ss-key { position: absolute; left: 12px; bottom: 10px; display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: 12px; color: #C9C4BC; text-shadow: 0 1px 3px rgba(0, 0, 0, .8); }
+.ss-key span { display: inline-flex; align-items: center; gap: 6px; }
+.ss-key i { display: inline-block; width: 12px; height: 12px; border-radius: 3px; }
+.ss-key .k-burn { background: #1A130F; border: 1px solid #5a3a28; }
+.ss-key .k-front { background: transparent; border: 2px solid #FF8A3D; border-radius: 50%; }
+.ss-key .k-sat { border: 1.5px dashed #FF8A3D; border-radius: 0; }
+.ss-key .k-est { border: 2px dashed #FF3B30; border-radius: 50%; }
+.ss-steps { display: flex; gap: 8px; }
+.ss-steps button { flex: 1; display: flex; align-items: center; gap: 8px; justify-content: center; background: transparent; border: 1px solid var(--line);
+  color: var(--smoke); border-radius: 999px; padding: 7px 10px; font: inherit; font-size: 13px; cursor: pointer; font-variant-numeric: tabular-nums; }
+.ss-steps button i { width: 8px; height: 8px; border-radius: 50%; background: var(--line); }
+.ss-steps button.on { color: var(--ash); border-color: var(--smoke); }
+.ss-steps button.done { color: #BDB7AE; }
+.ss-card { min-height: 100svh; display: flex; flex-direction: column; justify-content: center; opacity: .28; transition: opacity .35s ease; }
+.ss-card.on { opacity: 1; }
+.ss-card-meta { font-size: 14px; color: var(--smoke); margin-bottom: 8px; font-variant-numeric: tabular-nums; }
+.ss-card-meta span { font-weight: 700; text-transform: capitalize; margin-right: 6px; }
+.ss-card h3 { font-family: var(--display); font-size: clamp(24px, 2.6vw, 32px); line-height: 1.15; margin-bottom: 12px; color: var(--ash); }
+.ss-card p { margin-bottom: 16px; }
+.ss-card ul { list-style: none; display: grid; gap: 6px; font-size: 15px; }
+.ss-card li { padding-left: 16px; position: relative; color: var(--ash); }
+.ss-card li::before { content: ""; position: absolute; left: 0; top: .6em; width: 7px; height: 7px; border-radius: 2px; background: var(--ember); }
+
+@media (max-width: 960px) {
+  /* phone: the map stays on top, the story scrolls underneath it */
+  .ss { grid-template-columns: 1fr; }
+  .ss-sticky { grid-column: 1; height: auto; top: 0; z-index: 2; background: var(--night); padding: 10px 0; }
+  .ss-text { grid-row: 2; }
+  .ss-card { min-height: 55svh; justify-content: flex-start; padding-top: 16px; }
+  .ss-hud { font-size: 12px; }
+  .ss-key { display: none; }
+  .ss-steps button { padding: 6px 4px; font-size: 12px; }
+}
+@media (prefers-reduced-motion: reduce) { .ss-card { transition: none; } }

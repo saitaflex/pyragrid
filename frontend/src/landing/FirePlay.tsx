@@ -5,7 +5,10 @@ import {
   ACTIONS, DESTROY_C, FIRE_START, H, SITE, W, distanceKm, estimate, level, readings,
 } from "./sim";
 
-const SAT_PX = 375 / 12;   // a VIIRS pixel is ~375 m: a coarse square on this map
+const SAT_PX = 375 / 12;
+// a light situation shows a small, dim fire; a critical one a large, bright front
+const FIRE_R = { NORMAL: 20, ELEVATED: 30, HIGH: 48, CRITICAL: 72 } as const;
+const FIRE_A = { NORMAL: 0.55, ELEVATED: 0.7, HIGH: 0.85, CRITICAL: 1 } as const;   // a VIIRS pixel is ~375 m: a coarse square on this map
 
 /** Drag the fire (or press play) and watch sensors, the combined position and the
  *  protocol react. Keyboard: focus the fire and use the arrow keys. */
@@ -93,7 +96,7 @@ export function FirePlay() {
           {/* satellite pixel */}
           <rect x={sat.x} y={sat.y} width={SAT_PX} height={SAT_PX} fill="none" stroke="#FF8A3D" strokeWidth="1.5" strokeDasharray="3 3" />
           {/* the fire */}
-          <circle cx={fire.x} cy={fire.y} r="46" fill="url(#fp-glow)" className="fp-flicker" />
+          <circle cx={fire.x} cy={fire.y} r={FIRE_R[lvl]} fill="url(#fp-glow)" className="fp-flicker" style={{ opacity: FIRE_A[lvl] }} />
           {/* sensors */}
           {rs.map((r) => (
             <g key={r.id} transform={`translate(${r.x - 12},${r.y - 12})`} onPointerEnter={() => setHover(r.id)} onPointerLeave={() => setHover(null)}>

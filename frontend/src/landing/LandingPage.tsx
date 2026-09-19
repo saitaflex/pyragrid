@@ -3,6 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../state/AuthContext";
 import { Embers } from "./Embers";
 import { FirePlay } from "./FirePlay";
+import { ScrollScenario } from "./ScrollScenario";
 import "./landing.css";
 
 const ROLES = [
@@ -10,14 +11,6 @@ const ROLES = [
   { email: "fire@demo.eu", who: "Fire service", enter: "Enter as the fire service", sees: "Fire position, sensors, people on site, access routes and the handoff pack. No company finances.", to: "/situation" },
   { email: "gov@demo.eu", who: "Civil protection", enter: "Enter as civil protection", sees: "Risk around every site and how many people are there.", to: "/situation" },
   { email: "ngo@demo.eu", who: "NGO or community", enter: "Enter as an NGO", sees: "The public picture: fires, sensors and risk levels.", to: "/situation" },
-];
-
-const STEPS = [
-  ["Detect", "NASA satellites report heat anywhere in the region, several times a day."],
-  ["Confirm", "Sensors on the fence, nearby houses and the forest edge feel the heat, even at night or under cloud."],
-  ["Locate", "Their readings are combined into one fire position, to within a few hundred metres."],
-  ["Alert", "The site's risk level rises and your own protocol says who does what."],
-  ["Advise and hand off", "An AI advisor suggests next steps from the evidence, a person approves them, and the fire service gets a one-page pack."],
 ];
 
 export function LandingPage() {
@@ -50,26 +43,27 @@ export function LandingPage() {
             <button className="lp-btn" disabled={!!busy} onClick={() => enter("admin@demo.eu", "/")}>
               {busy === "admin@demo.eu" ? "Opening…" : "Open the live demo"}
             </button>
-            <a className="lp-btn quiet" href="#try">Try it on a toy map</a>
+            <a className="lp-btn quiet" href="#story">See how it works</a>
           </div>
           {err && <p className="lp-err">{err}</p>}
         </div>
         <p className="lp-credit">Illustration generated with AI. Demo data is simulated.</p>
       </header>
 
+      <section className="lp-section" id="story">
+        <div className="lp-head">
+          <h2>One fire, hour by hour</h2>
+          <p>Scroll to follow a simulated incident near a solar farm. The fire stays small while the situation is light and grows as it becomes serious. At each step you see what the platform knows and what the team does.</p>
+        </div>
+        <ScrollScenario />
+      </section>
+
       <section className="lp-section" id="try">
         <div className="lp-head">
-          <h2>Move the fire. Watch what the site knows.</h2>
+          <h2>Now move the fire yourself</h2>
           <p>A satellite only sees a 375&nbsp;m square. Sensors on real places around the site feel the heat and are combined into one position. When a sensor burns, it goes silent, and that is information too.</p>
         </div>
         <FirePlay />
-      </section>
-
-      <section className="lp-section lp-steps">
-        <h2>From a hotspot to a decision</h2>
-        <ol>
-          {STEPS.map(([t, d]) => <li key={t}><strong>{t}</strong><span>{d}</span></li>)}
-        </ol>
       </section>
 
       <section className="lp-section lp-split">

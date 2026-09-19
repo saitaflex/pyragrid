@@ -1,12 +1,14 @@
-import { Navigate, Outlet } from "react-router-dom";
+import { Navigate, Outlet, useLocation } from "react-router-dom";
 import type { ReactNode } from "react";
 import { useAuth } from "../state/AuthContext";
 import { STAFF_ROLES } from "../api/types";
 
 export function RequireAuth() {
   const { user, ready } = useAuth();
+  const loc = useLocation();
   if (!ready) return null;
-  if (!user) return <Navigate to="/login" replace />;
+  // visitors land on the public story page; deep links go straight to sign-in
+  if (!user) return <Navigate to={loc.pathname === "/" ? "/welcome" : "/login"} replace />;
   return <Outlet />;
 }
 

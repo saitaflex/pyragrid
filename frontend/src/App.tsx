@@ -8,6 +8,7 @@ import { DrillBanner } from "./components/DrillBanner";
 import { useSyncExternalStore } from "react";
 import { USE_MOCKS, offlineStore } from "./api/client";
 import { LoginPage } from "./pages/LoginPage";
+import { LandingPage } from "./landing/LandingPage";
 import { PortfolioPage } from "./pages/PortfolioPage";
 import { SitePage } from "./pages/SitePage";
 import { IncidentPage } from "./pages/IncidentPage";
@@ -45,6 +46,7 @@ function Layout() {
 export default function App() {
   return (
     <Routes>
+      <Route path="/welcome" element={<LandingPage />} />
       <Route path="/login" element={<LoginPage />} />
       <Route element={<Layout />}>
         <Route element={<RequireAuth />}>

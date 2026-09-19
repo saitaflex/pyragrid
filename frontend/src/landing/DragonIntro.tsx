@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { BRAND } from "../brand";
 import "./dragon.css";
+import { Burn } from "./burn";
 
 /* The PyraGrid dragon wakes as you scroll: its eyes open in the dark, the night draws back
    to paper, the three heads lift off and breathe fire one after the other. Each head stands
@@ -35,6 +36,9 @@ export function DragonIntro({ onDemo, busy }: { onDemo: () => void; busy: boolea
   const pupils = useRef<(HTMLImageElement | null)[]>([]);
   const snaps = useRef<HTMLImageElement>(null);
   const glow = useRef<HTMLDivElement>(null);
+  const burnCanvas = useRef<HTMLCanvasElement>(null);
+  const burn = useRef<Burn | null>(null);
+  const stageRef = useRef<HTMLDivElement>(null);
   const [cap, setCap] = useState(0);
   const [lit, setLit] = useState([false, false, false]);
   const [eyes, setEyes] = useState<"closed" | "open" | "blink">("closed");
@@ -83,7 +87,12 @@ export function DragonIntro({ onDemo, busy }: { onDemo: () => void; busy: boolea
       if (!el || !a) return;
       const u = a.getBoundingClientRect().width / W;
       const r = el.getBoundingClientRect(), max = r.height - window.innerHeight;
-      const p = reduce ? 1 : max > 0 ? clamp(-r.top / max) : 1;
+      const total = reduce ? 1 : max > 0 ? clamp(-r.top / max) : 1;
+      const p = reduce ? 1 : clamp(total / 0.66);                 // the dragon
+      const q = reduce ? 0 : clamp((total - 0.7) / 0.3);          // the fire that ends the intro
+      burn.current?.set(q);
+      el.classList.toggle("gone", q >= 0.47);                 // covered by fire: hide it all
+      el.classList.toggle("burnt", q >= 0.95);
       if (p > 0.02 && !revealedRef.current) reveal(true);
       const lift = smooth(p, 0.04, 0.17);
       const fire = { l: smooth(p, 0.24, 0.33), c: smooth(p, 0.44, 0.53), r: smooth(p, 0.64, 0.73) };
@@ -101,12 +110,14 @@ export function DragonIntro({ onDemo, busy }: { onDemo: () => void; busy: boolea
       setLit([fire.l > 0.6, fire.c > 0.6, fire.r > 0.6]);
     };
     const onScroll = () => { if (!ticking) { ticking = true; requestAnimationFrame(render); } };
+    if (burnCanvas.current && !reduce) burn.current = new Burn(burnCanvas.current, "/media/hero.webp");
+    const onResize = () => { burn.current?.resize(); onScroll(); };
     render();
     window.addEventListener("scroll", onScroll, { passive: true });
-    window.addEventListener("resize", onScroll);
+    window.addEventListener("resize", onResize);
     const onKey = (e: KeyboardEvent) => { if (!revealedRef.current && e.key !== "Tab") reveal(true); };
     window.addEventListener("keydown", onKey);
-    return () => { window.removeEventListener("scroll", onScroll); window.removeEventListener("resize", onScroll); window.removeEventListener("keydown", onKey); };
+    return () => { window.removeEventListener("scroll", onScroll); window.removeEventListener("resize", onResize); window.removeEventListener("keydown", onKey); burn.current?.destroy(); burn.current = null; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -133,7 +144,8 @@ export function DragonIntro({ onDemo, busy }: { onDemo: () => void; busy: boolea
 
   return (
     <section ref={scene} className={`dr ${revealed ? "revealed" : ""} ${reduce ? "still" : ""}`} aria-label={`${BRAND.name} introduction`}>
-      <div className="dr-stage">
+      <div className="dr-stage" ref={stageRef}>
+        <div className="dr-night" aria-hidden />
         <div ref={paper} className="dr-paper" aria-hidden />
         <div ref={glow} className="dr-glow" aria-hidden />
         <header className="dr-head">
@@ -187,6 +199,7 @@ export function DragonIntro({ onDemo, busy }: { onDemo: () => void; busy: boolea
           </div>
         </div>
         <div className="dr-progress" aria-hidden>{lit.map((on, i) => <i key={i} className={on ? "on" : ""} />)}</div>
+        <canvas ref={burnCanvas} className="dr-burn" aria-hidden />
       </div>
     </section>
   );

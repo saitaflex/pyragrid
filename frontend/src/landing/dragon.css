@@ -1,9 +1,16 @@
 /* dragon.css — the PyraGrid intro at the top of the welcome page. Black ink on paper,
    ember flames; the dark night outside the paper matches the rest of the page. */
 .dr { --paper: #FAF9F6; --ink: #0A0A0A; --muted: #5E5A54; --flame: #C53A19; --ember-i: #F07A2A;
-  position: relative; height: 480svh; background: #0F1519; }
-.dr-stage { position: sticky; top: 0; height: 100svh; overflow: hidden; isolation: isolate;
+  position: relative; z-index: 3; height: 740svh;
+  /* the last screen overlaps the photo section, so the fire burns through to it */
+  margin-bottom: -100svh; pointer-events: none; }
+.dr-stage { position: sticky; top: 0; height: 100svh; overflow: hidden; isolation: isolate; pointer-events: auto;
   display: grid; grid-template-rows: auto minmax(0, 1fr) auto; }
+.dr-night { position: absolute; inset: 0; z-index: -3; background: #0F1519; }
+/* once the fire covers the screen, the paper stage is gone: not seen, not clickable, not focusable */
+.dr.gone .dr-stage > :not(.dr-burn) { visibility: hidden; }
+.dr.burnt .dr-stage, .dr.burnt .dr-stage * { pointer-events: none !important; }
+.dr-burn { position: absolute; inset: 0; width: 100%; height: 100%; z-index: 10; pointer-events: none; visibility: hidden; }
 .dr-paper { position: absolute; inset: 0; z-index: -2; background: var(--paper); clip-path: circle(0px at 50% 50%); }
 .dr.revealed .dr-paper { clip-path: none; }
 .dr-glow { position: absolute; inset: 0; z-index: -1; opacity: 0; pointer-events: none;
@@ -68,7 +75,7 @@
   .dr-progress { display: none; }
 }
 /* reduced motion: the finished state, everything readable, no scroll-jacking */
-.dr.still { height: auto; }
+.dr.still { height: auto; margin-bottom: 0; pointer-events: auto; }
 .dr.still .dr-stage { position: relative; height: auto; min-height: 100svh; }
 .dr.still .dr-flame { transform: none; opacity: 1; }
 .dr.still .dr-flame img, .dr.still .dr-cue { animation: none; }

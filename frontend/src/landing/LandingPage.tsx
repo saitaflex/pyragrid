@@ -1,7 +1,7 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../state/AuthContext";
-import { Embers } from "./Embers";
+import { HeroFX } from "./HeroFX";
 import { FirePlay } from "./FirePlay";
 import { ScrollScenario } from "./ScrollScenario";
 import { DragonIntro } from "./DragonIntro";
@@ -19,6 +19,7 @@ export function LandingPage() {
   const nav = useNavigate();
   const [busy, setBusy] = useState<string | null>(null);
   const [err, setErr] = useState("");
+  const heroImg = useRef<HTMLDivElement>(null);
 
   const enter = async (email: string, to: string) => {
     setBusy(email); setErr("");
@@ -31,8 +32,8 @@ export function LandingPage() {
     <div className="lp">
       <DragonIntro onDemo={() => enter("admin@demo.eu", "/")} busy={busy === "admin@demo.eu"} />
       <header className="lp-hero">
-        <div className="lp-hero-img" role="img" aria-label="A solar farm in the Galician hills at dusk with a wildfire burning on the far ridge" />
-        <Embers />
+        <div ref={heroImg} className="lp-hero-img" role="img" aria-label="A solar farm in the Galician hills at dusk with a wildfire burning on the far ridge" />
+        <HeroFX imageRef={heroImg} />
         <div className="lp-hero-shade" />
         <div className="lp-hero-copy">
           <h1>Know where the fire is before it reaches your site.</h1>

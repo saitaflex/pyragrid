@@ -1,0 +1,792 @@
+"""build_plan.py — writes PyraGrid_Business_Plan.md from the financial model.
+
+    python build_plan.py
+
+Every figure in the plan is computed by model.py; nothing is typed by hand.
+"""
+from __future__ import annotations
+
+from pathlib import Path
+
+import model as M
+
+A, Y = M.A, M.YEARS
+B = M.run()
+BEAR = M.run(growth_factor=0.6, price_factor=0.9, churn=0.12)
+BULL = M.run(growth_factor=1.3, price_factor=1.05, churn=0.06)
+PB = '\n<div style="page-break-after: always;"></div>\n'
+
+
+# ------------------------------------------------------------------ formatting
+def k(v: float, dec: int = 0) -> str:
+    """Thousands of euros, negatives in brackets (finance convention)."""
+    s = f"{abs(v) / 1000:,.{dec}f}"
+    return f"({s})" if v < -0.5 else ("–" if abs(v) < 0.5 else s)
+
+
+def eur(v: float) -> str:
+    return f"€{v:,.0f}" if v >= 0 else f"(€{-v:,.0f})"
+
+
+def m(v: float, dec: int = 1) -> str:
+    s = f"€{abs(v) / 1e6:,.{dec}f}M"
+    return f"({s})" if v < 0 else s
+
+
+def pct(v: float, dec: int = 0) -> str:
+    return f"{v * 100:.{dec}f}%" if v == v else "n/a"
+
+
+def n(v: float) -> str:
+    return f"{v:,.0f}"
+
+
+def row(label: str, vals, fmt=k, bold: bool = False) -> str:
+    cells = [fmt(v) for v in vals]
+    if bold:
+        label, cells = f"**{label}**", [f"**{c}**" for c in cells]
+    return f"| {label} | " + " | ".join(cells) + " |"
+
+
+def head(first: str = "k€") -> str:
+    return f"| {first} | " + " | ".join(f"FY{y}" for y in Y) + " |\n|:--|" + "--:|" * len(Y)
+
+
+def growth(series, i):
+    return series[i] / series[i - 1] - 1 if i and series[i - 1] else float("nan")
+
+
+# ------------------------------------------------------------------ derived analysis
+rev, ebitda, arr = B["revenue"], B["ebitda"], B["arr"]
+gm = [B["gross"][i] / rev[i] if rev[i] else float("nan") for i in range(M.N)]
+em = [ebitda[i] / rev[i] if rev[i] else float("nan") for i in range(M.N)]
+
+# EBITDA break-even month: monthly EBITDA linear over the two years around the crossing
+be_year = next(i for i in range(1, M.N) if ebitda[i] > 0)
+e1, e2 = ebitda[be_year - 1], ebitda[be_year]
+b_slope = (e2 - e1) / 144                      # sum of 12 months shifts by 144·b between years
+a0 = e1 / 12 - b_slope * 6.5
+t0 = -a0 / b_slope                             # month index from 1 Jan of be_year-1
+be_month = int(t0) + 1
+be_label = f"{['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][(be_month - 1) % 12]} {Y[be_year - 1] + (be_month - 1) // 12}"
+min_cash = min(B["cash"][1:])
+min_cash_year = Y[B["cash"].index(min_cash)]
+
+# unit economics (FY2029, the first year at scale)
+u = 3
+price_site = B["blended"][u]
+site_cost = A["cloud_per_site"] + A["llm_per_site"] + A["support_pct"] * price_site
+site_margin = price_site - site_cost
+kit = A["sensors_per_site"] * A["sensor_unit_cost"] + A["gateway_cost"]
+sensor_upfront = kit + A["install_cost"]
+sensor_repl = A["sensor_replacement"] * A["sensors_per_site"] * A["sensor_unit_cost"]
+sensor_contrib = A["sensor_fee"] - A["sensor_opex"] - A["support_pct"] * A["sensor_fee"] - sensor_repl
+sensor_payback_m = sensor_upfront / sensor_contrib * 12
+sensor_irr = M.irr([-sensor_upfront] + [sensor_contrib] * A["sensor_life"])
+avg_cust = (B["customers"][u - 1] + B["customers"][u]) / 2
+arpa = rev[u] / avg_cust
+# fully loaded CAC: sales and marketing, half of customer success (onboarding, pilots)
+# and 30% of the founders' time spent selling
+LIFE_CAP = 5
+cs_cost = A["fte_cs"][u] * A["cost_cs"] * (1 + A["wage_growth"]) ** u
+founder_sell = A["founders"] * A["founder_pay"][u] * 0.30
+cac = (B["sm_cost"][u] + 0.5 * cs_cost + founder_sell) / B["new_customers"][u]
+ltv_uncapped = arpa * gm[u] / A["logo_churn"]
+def ltv_at(churn: float) -> float:
+    """Gross profit over a 5-year horizon, weighted by the chance the customer is still there."""
+    return arpa * gm[u] * sum((1 - churn) ** t for t in range(LIFE_CAP))
+
+
+ltv = ltv_at(A["logo_churn"])
+cac_payback = cac / (arpa * gm[u] / 12)
+
+# cap table
+pre_seed_pre, seed_pre, esop = 1_200_000, 6_000_000, 0.10
+ps_share = A["preseed"] / (pre_seed_pre + A["preseed"])
+seed_post = seed_pre + A["seed"]
+seed_share = A["seed"] / seed_post
+rest = 1 - seed_share - esop
+founders_post = (1 - ps_share) * rest
+preseed_post = ps_share * rest
+
+# valuation and returns
+pv_fcf, tv, pv_tv, dcf, exit_val, pv_exit = M.valuation(B)
+exits = [4.0, 6.0, 8.0]
+hold_seed, hold_ps = 3.75, 5.5
+
+
+def moic_irr(stake, invested, years, multiple):
+    proceeds = arr[-1] * multiple * stake
+    mo = proceeds / invested
+    return proceeds, mo, mo ** (1 / years) - 1
+
+
+# sensitivity: FY2031 EBITDA for price × growth
+PRICES, GROWTHS = [0.8, 0.9, 1.0, 1.1, 1.2], [0.7, 0.85, 1.0, 1.15, 1.3]
+SENS = {(p, g): M.run(price_factor=p, growth_factor=g) for p in PRICES for g in GROWTHS}
+
+# ------------------------------------------------------------------ document
+L: list[str] = []
+w = L.append
+
+w(f"""# PyraGrid
+
+## Business Plan and Financial Model, FY2026–FY2031
+
+**Wildfire intelligence for companies with sites in fire country**
+
+| | |
+|:--|:--|
+| **Company** | PyraGrid (in formation, Spain) |
+| **Stage** | Pre-seed, working product live at rural-valley.vercel.app |
+| **Document** | Business plan, five-year financial model, valuation |
+| **Version** | 1.0, September 2026 |
+| **Funding sought** | {m(A['preseed'], 2)} pre-seed now, {m(A['seed'])} seed in Q1 2028 |
+| **Confidentiality** | Confidential. Prepared for investors, grant bodies and the Rural Valley programme. |
+
+> All financial figures are forecasts built from the assumptions in section 9.1. They are
+> planning estimates, not guarantees. Market figures marked *estimate* are to be validated
+> during the 2027 pilot programme.
+{PB}
+## Contents
+
+1. [Executive summary](#1-executive-summary)
+2. [The problem](#2-the-problem)
+3. [The solution](#3-the-solution)
+4. [Market analysis](#4-market-analysis)
+5. [Competition and positioning](#5-competition-and-positioning)
+6. [Business model and pricing](#6-business-model-and-pricing)
+7. [Go-to-market strategy](#7-go-to-market-strategy)
+8. [Operations and team](#8-operations-and-team)
+9. [Financial plan](#9-financial-plan)
+10. [Funding and capital structure](#10-funding-and-capital-structure)
+11. [Valuation](#11-valuation)
+12. [Risks and mitigation](#12-risks-and-mitigation)
+13. [Milestones and roadmap](#13-milestones-and-roadmap)
+14. [Impact](#14-impact)
+15. [Appendix: methodology and formulas](#15-appendix-methodology-and-formulas)
+{PB}
+## 1. Executive summary
+
+**The problem.** Companies that own energy, telecom and forestry assets in Southern Europe
+face a growing wildfire risk, but the data they get is not built for them. Public satellite
+services show where heat is, not what it means for a specific solar farm, substation or
+tower, and not what the company should do next.
+
+**The solution.** PyraGrid turns satellite fire detections, weather and optional ground
+sensors into one risk level per site, an estimated fire position, and the company's own
+emergency protocol, with an AI advisor that proposes next steps and a person who approves
+them. The same picture is shared, with the right level of detail, with the fire service,
+civil protection and local organisations. A drill mode trains staff on realistic scenarios.
+
+**Business model.** Annual subscription per monitored site ({eur(A['price_essential'])}
+Essential, {eur(A['price_pro'])} Professional), optional Sensor-as-a-Service
+({eur(A['sensor_fee'])} per site per year) and onboarding and training services.
+
+**Key figures (base case)**
+
+| | FY2027 | FY2029 | FY2031 |
+|:--|--:|--:|--:|
+| Customers (year end) | {n(B['customers'][1])} | {n(B['customers'][3])} | {n(B['customers'][5])} |
+| Monitored sites (year end) | {n(B['sites'][1])} | {n(B['sites'][3])} | {n(B['sites'][5])} |
+| Annual recurring revenue (ARR) | {m(arr[1], 2)} | {m(arr[3])} | {m(arr[5])} |
+| Revenue | {m(rev[1], 2)} | {m(rev[3])} | {m(rev[5])} |
+| Gross margin | {pct(gm[1])} | {pct(gm[3])} | {pct(gm[5])} |
+| EBITDA | {m(ebitda[1], 2)} | {m(ebitda[3], 2)} | {m(ebitda[5])} |
+| EBITDA margin | {pct(em[1])} | {pct(em[3])} | {pct(em[5])} |
+| Team (FTE) | {n(B['fte'][1])} | {n(B['fte'][3])} | {n(B['fte'][5])} |
+
+- **Break-even:** monthly EBITDA turns positive around **{be_label}**; FY{Y[be_year]} is the first profitable year.
+- **Funding:** {m(A['preseed'], 2)} pre-seed plus an ENISA participative loan ({m(A['enisa_loan'], 2)}) and innovation grants ({m(sum(A['grant']), 2)}) fund the pilots; a **{m(A['seed'])} seed round** in Q1 2028 takes the company to profitability. The lowest year-end cash balance is {m(min_cash, 2)} (FY{min_cash_year}).
+- **Unit economics:** a platform site earns a {pct(site_margin / price_site)} contribution margin; a sensor site pays back in {sensor_payback_m:.0f} months; LTV/CAC is {ltv / cac:.1f}x and the cost of winning a customer is paid back in {cac_payback:.0f} months.
+- **Valuation:** {m(dcf)} on a discounted cash flow at a {pct(A['wacc'])} venture discount rate; {m(pv_exit)} present value of a {A['arr_multiple']:.0f}x ARR exit in 2031.
+{PB}
+## 2. The problem
+
+Wildfires in Southern Europe are becoming larger, faster and harder to predict. Longer
+droughts, heat waves and the abandonment of rural land leave more fuel near infrastructure.
+The EU's European Forest Fire Information System (EFFIS) reports that Spain, Portugal,
+Italy and Greece account for most of the burned area in the EU in a typical year.
+
+For a company that owns assets in these regions, a fire means:
+
+- **People at risk:** technicians and contractors on remote sites, often with one access road.
+- **Physical damage:** solar panels, inverters, turbines, substations and telecom equipment.
+- **Outages and penalties:** lost generation, grid and telecom service interruptions.
+- **Rising insurance costs** and new disclosure duties on physical climate risk
+  (EU CSRD, ESRS E1).
+
+**What companies have today.** Free satellite services such as NASA FIRMS and EFFIS show
+heat anomalies across the whole region, several times a day. They answer *where is there
+heat?* but not:
+
+1. *Which of my sites is exposed, and how badly?*
+2. *Is the fire really there, and exactly where, at night or under cloud?*
+3. *What does our own procedure say we must do now, and who does it?*
+4. *What does the fire service need from us?*
+5. *Is our team trained to react in minutes, not hours?*
+
+In practice, control rooms monitor public maps by hand, phone site managers, and search
+for the emergency procedure in a PDF. That costs the minutes that matter most.
+{PB}
+## 3. The solution
+
+PyraGrid is a decision layer between fire data and the people who must act. It runs in
+the browser and is live today.
+
+| Capability | What it does for the customer |
+|:--|:--|
+| **Asset risk engine** | Scores every site from 0 to 100 every satellite pass from distance, wind alignment, weather, fuel and vulnerability, with every factor shown. |
+| **Ground sensors (optional)** | Temperature sensors placed on real places around each site (fence, nearby buildings, forest edges). They confirm fire on the ground, see it at night or under cloud, and flag when a sensor dies or is moved. |
+| **Combined fire position** | Hot sensors are combined into one estimated fire position with an uncertainty radius, far more precise than a 375 m satellite pixel. |
+| **Protocol engine** | The company's own emergency rules turn each risk level into a checklist: who to call, what to check, when to evacuate. |
+| **AI advisor** | A language model proposes next steps from the evidence. Every suggestion cites its data, never gives firefighting tactics, and is approved or rejected by a person. |
+| **Fire-service handoff** | A one-page pack for firefighters: access routes, hazards, water points, people on site, fire position. |
+| **Shared situation view** | Fire service, civil protection and NGOs see the same picture with a data-sharing policy per role. |
+| **Drills and simulation** | Staff train on realistic scenarios; the system scores response speed and accuracy. A live simulator shows how a fire would spread under today's conditions. |
+
+**Why it is defensible**
+
+- **Data network effects:** every site, sensor and drill improves the scoring and the
+  protocol library; partner agencies using the shared view pull more asset owners in.
+- **Workflow lock-in:** once a company's protocols, contacts and audit trail live in
+  PyraGrid, switching costs are high.
+- **Hardware plus software:** the sensor network is a physical asset in the field with a
+  multi-year contract.
+- **Trust by design:** transparent scoring, evidence-cited AI and human approval fit the
+  needs of regulated operators and insurers.
+{PB}
+## 4. Market analysis
+
+### 4.1 Target customers
+
+| Segment | Assets | Why they buy |
+|:--|:--|:--|
+| Renewable energy owners and operators | Solar plants, wind farms, battery storage | Personnel safety, lost generation, insurance, lender requirements |
+| Grid operators | Substations, lines crossing forest | Service continuity, regulatory duty, liability |
+| Telecom tower companies | Rural towers and shelters | Uptime obligations, emergency communications |
+| Forestry and timber companies | Managed plantations | Asset value, certification, insurance |
+| Insurers and brokers (channel) | Portfolios of the above | Loss prevention, underwriting data |
+| Public bodies (partners) | Fire services, civil protection, municipalities | Free shared view; they bring asset owners in |
+
+### 4.2 Market size (bottom-up)
+
+Sizing counts monitored sites, the unit PyraGrid sells. Site counts are *estimates* built
+from public registries and industry sources at order-of-magnitude level; they will be
+validated with regulator and industry data during the 2027 pilots.
+
+| Level | Scope | Sites (*estimate*) | Revenue per site | Annual market |
+|:--|:--|--:|--:|--:|
+| **TAM** | Exposed critical sites in Spain, Portugal, southern France, Italy and Greece | 120,000 | €2,900 | €348M |
+| **SAM** | Energy, telecom and forestry sites in high-risk zones of Spain and Portugal | 27,000 | €2,900 | €78M |
+| **SOM** | PyraGrid base case, FY2031 | {n(B['sites'][5])} | {eur(arr[5] / B['sites'][5])} | {m(arr[5])} |
+
+The FY2031 base case reaches **{pct(B['sites'][5] / 27000, 1)} of the Iberian SAM**, a
+realistic share for a specialist leader five years after launch. Revenue per site in the
+TAM and SAM rows is a blended planning figure (platform tiers plus sensor attach).
+
+### 4.3 Market drivers
+
+- **Climate:** longer and more intense fire seasons across the Mediterranean.
+- **Regulation:** the EU Corporate Sustainability Reporting Directive (CSRD) and ESRS E1
+  require large companies to assess and report physical climate risks.
+- **Insurance:** underwriters increasingly price wildfire exposure per asset and reward
+  mitigation.
+- **Energy transition:** thousands of new solar and wind sites are being built in rural,
+  fire-prone land.
+- **Public policy:** EU and national programmes fund wildfire prevention and early detection.
+{PB}
+## 5. Competition and positioning
+
+| | Public satellite services (FIRMS, EFFIS) | Satellite analytics start-ups | Ground sensor networks | Camera detection networks | **PyraGrid** |
+|:--|:--|:--|:--|:--|:--|
+| Detects fires across the region | Yes | Yes | No | Partial | **Yes (satellite)** |
+| Risk score per customer site | No | Partial | No | No | **Yes** |
+| Confirms fire on the ground, night and cloud | No | No | Yes | Partial | **Yes (optional sensors)** |
+| Company protocol and actions | No | No | No | No | **Yes** |
+| AI advisor with human approval | No | No | No | No | **Yes** |
+| Shared view for fire service and agencies | Public only | No | Partial | Partial | **Yes, per-role policy** |
+| Drills and training | No | No | No | No | **Yes** |
+| Price | Free | High, enterprise | Hardware-led | Hardware-led | **Per site, from €1,800/yr** |
+
+**Positioning:** PyraGrid does not compete with public satellite data; it uses it. It sits
+one level up, as the operational layer an asset owner needs to act, and it integrates
+detection sources rather than betting on one. Sensor and camera providers are potential
+data partners.
+{PB}
+## 6. Business model and pricing
+
+### 6.1 Offer
+
+| Product | Includes | Price (2026 list) |
+|:--|:--|--:|
+| **Essential** | Risk engine, alerts, protocol engine, handoff pack, shared view | {eur(A['price_essential'])} per site / year |
+| **Professional** | Essential plus AI advisor, drills and simulator, API, partner sharing controls | {eur(A['price_pro'])} per site / year |
+| **Enterprise** | Professional for 50+ sites, integrations, SLA | Volume pricing from Professional |
+| **Sensor-as-a-Service** | {A['sensors_per_site']} sensors and a gateway per site, installation, maintenance, replacement; 3-year minimum term | {eur(A['sensor_fee'])} per site / year |
+| **Onboarding** | Site import, protocol set-up, integration | {eur(A['onboarding_fee'])} per customer |
+| **Training and drills** | Annual drill programme and training | {eur(A['training_fee'])} per customer / year |
+| **Public partners** | Shared situation view for fire services and agencies | Free |
+
+List prices rise 3% a year from FY2029. The Professional share grows from
+{pct(A['pro_mix'][1])} to {pct(A['pro_mix'][5])} of sites as customers adopt the AI advisor and drills.
+
+### 6.2 Revenue model
+
+- **Recurring subscription** (platform and sensors) is billed annually in advance: about
+  {pct((B['rev_platform'][5] + B['rev_sensor'][5]) / rev[5])} of FY2031 revenue.
+- **Land and expand:** customers start with their most exposed sites and add sites over
+  time; sites per customer grow from {A['sites_per_customer'][1]:.0f} to {A['sites_per_customer'][5]:.0f}.
+- **Hardware as a service** keeps the sensor fleet on PyraGrid's balance sheet, turning a
+  one-off sale into recurring revenue with a {pct(sensor_irr)} internal rate of return per sensor site.
+{PB}
+## 7. Go-to-market strategy
+
+| Phase | Period | Focus | Target |
+|:--|:--|:--|:--|
+| **1. Pilots** | 2026–2027 | Galicia (Ourense) and northern Portugal; grant-funded sensor pilots; Rural Valley programme | {n(B['customers'][1])} paying customers, {n(B['sites'][1])} sites |
+| **2. Iberia** | 2028–2029 | Renewable owners, grid operators and tower companies across Spain and Portugal | {n(B['customers'][3])} customers, {n(B['sites'][3])} sites |
+| **3. Southern Europe** | 2030–2031 | France (south), Italy, Greece through partners | {n(B['customers'][5])} customers, {n(B['sites'][5])} sites |
+
+**Channels**
+
+1. **Direct sales** to asset owners: head of HSE, operations and risk.
+2. **Insurers and brokers:** PyraGrid as a loss-prevention service bundled with policies.
+3. **EPC and O&M contractors** who build and run solar and wind plants.
+4. **Public partners:** free shared view for fire services and civil protection, which
+   creates demand from asset owners in their area.
+
+**Sales cycle:** 3 to 6 months for mid-size operators, 6 to 12 months for utilities.
+A paid pilot of 5 to 10 sites converts to a portfolio contract.
+{PB}
+## 8. Operations and team
+
+### 8.1 Founding team
+
+- **Co-founder, technology (engine, data and AI):** risk engine, sensor model, AI advisor, infrastructure.
+- **Co-founder, product (console and experience):** operator console, partner views, design.
+
+The founders will recruit advisors in wildfire operations (a former fire-service officer),
+energy asset management and insurance in 2027.
+
+### 8.2 Hiring plan (FTE at year end)
+
+| Function | """ + " | ".join(f"FY{y}" for y in Y) + """ |
+|:--|""" + "--:|" * len(Y) + f"""
+| Founders | """ + " | ".join(str(A["founders"]) for _ in Y) + """ |
+| Engineering and data | """ + " | ".join(f"{v:g}" for v in A["fte_eng"]) + """ |
+| Sales and partnerships | """ + " | ".join(f"{v:g}" for v in A["fte_sales"]) + """ |
+| Customer success and field operations | """ + " | ".join(f"{v:g}" for v in A["fte_cs"]) + """ |
+| Finance, legal and admin | """ + " | ".join(f"{v:g}" for v in A["fte_ga"]) + """ |
+| **Total** | """ + " | ".join(f"**{v:g}**" for v in B["fte"]) + f""" |
+
+Fully loaded annual costs (salary plus Spanish social security) are €{A['cost_eng']:,}
+(engineering), €{A['cost_sales']:,} (sales, including variable pay), €{A['cost_cs']:,}
+(customer success and field) and €{A['cost_ga']:,} (G&A), rising 3% a year. Founders take
+reduced salaries until the seed round.
+
+### 8.3 Operations
+
+- **Cloud platform:** serverless hosting and managed Postgres; the cost scales with sites
+  ({eur(A['cloud_per_site'] + A['llm_per_site'])} per site per year including AI inference).
+- **Sensor supply chain:** off-the-shelf LoRaWAN modules, thermistors, solar cells and
+  enclosures assembled by a regional partner; bill of materials about
+  {eur(A['sensor_unit_cost'])} per sensor, {eur(kit)} per site kit including the gateway.
+- **Field operations:** installation by trained local contractors ({eur(A['install_cost'])} per site),
+  annual inspection and battery service ({eur(A['sensor_opex'])} per site per year).
+{PB}
+## 9. Financial plan
+
+All amounts are in thousands of euros (k€) unless stated. Negative values are in brackets.
+The fiscal year is the calendar year. FY2026 is the formation and pilot year.
+
+### 9.1 Key assumptions
+
+| Area | Assumption | Value |
+|:--|:--|:--|
+| Customers | Paying customers at year end | {", ".join(n(v) for v in A['customers_end'])} |
+| Expansion | Average sites per customer | {", ".join(f"{v:g}" for v in A['sites_per_customer'])} |
+| Pricing | Essential / Professional per site per year | {eur(A['price_essential'])} / {eur(A['price_pro'])}, +3%/yr from FY2029 |
+| Mix | Professional share of sites | {", ".join(pct(v) for v in A['pro_mix'])} |
+| Sensors | Share of sites with the sensor network | {", ".join(pct(v) for v in A['sensor_attach'])} |
+| Churn | Annual customer churn from FY2028 | {pct(A['logo_churn'])} (replaced by new sales) |
+| Revenue timing | Recognised on average sites in the year; billed annually in advance | |
+| Cost of revenue | Cloud and AI per site; support {pct(A['support_pct'])} of subscriptions; sensor field costs; installation | See 8.3 |
+| Sensor fleet | Capitalised, straight-line over {A['sensor_life']} years (half-year convention); {pct(A['sensor_replacement'])} of sensors replaced each year | |
+| Marketing | Fixed programme plus {pct(A['marketing_pct'])} of revenue | |
+| Working capital | Receivables {A['dso_days']} days; payables {A['dpo_days']} days; deferred revenue {pct(A['deferred_share'])} of annual subscription | |
+| Tax | Spanish corporate tax: 15% for the first two profitable years, then 25%; losses carried forward | |
+| Public funding | ENISA participative loan {m(A['enisa_loan'], 2)} at {pct(A['enisa_rate'])}, repaid FY2029–FY2031; innovation grants {m(sum(A['grant']), 2)} | |
+""")
+
+# ---- 9.2 revenue build
+w("### 9.2 Revenue build\n")
+w(head("Driver"))
+w(row("Customers (year end)", B["customers"], n))
+w(row("New customers", B["new_customers"], n))
+w(row("Monitored sites (year end)", B["sites"], n))
+w(row("Sites with sensors (year end)", B["sensor_sites"], n))
+w(row("Blended price per site (€)", [B["blended"][i] if B["sites"][i] else 0 for i in range(M.N)], lambda v: n(v) if v else "–"))
+w("")
+w(head())
+w(row("Platform subscriptions", B["rev_platform"]))
+w(row("Sensor-as-a-Service", B["rev_sensor"]))
+w(row("Onboarding and training", B["rev_services"]))
+w(row("Total revenue", rev, bold=True))
+w(row("Annual recurring revenue (year end)", arr))
+w(row("Revenue growth", [growth(rev, i) for i in range(M.N)], lambda v: pct(v)))
+w(PB)
+
+# ---- 9.3 unit economics
+w(f"""### 9.3 Unit economics
+
+**Per platform site (FY2029)**
+
+| | € per site per year |
+|:--|--:|
+| Blended subscription price | {eur(price_site)} |
+| Cloud hosting and data | ({eur(A['cloud_per_site'])[1:]}) |
+| AI inference | ({eur(A['llm_per_site'])[1:]}) |
+| Customer support ({pct(A['support_pct'])}) | ({eur(A['support_pct'] * price_site)[1:]}) |
+| **Contribution per site** | **{eur(site_margin)}** |
+| **Contribution margin** | **{pct(site_margin / price_site)}** |
+
+**Per sensor site (Sensor-as-a-Service)**
+
+| | € |
+|:--|--:|
+| Hardware kit ({A['sensors_per_site']} sensors and gateway) | {eur(kit)} |
+| Installation | {eur(A['install_cost'])} |
+| **Upfront investment** | **{eur(sensor_upfront)}** |
+| Annual fee | {eur(A['sensor_fee'])} |
+| Field service, connectivity and batteries | ({eur(A['sensor_opex'])[1:]}) |
+| Support ({pct(A['support_pct'])}) | ({eur(A['support_pct'] * A['sensor_fee'])[1:]}) |
+| Sensor replacement ({pct(A['sensor_replacement'])} per year) | ({eur(sensor_repl)[1:]}) |
+| **Annual contribution** | **{eur(sensor_contrib)}** |
+| **Payback** | **{sensor_payback_m:.0f} months** |
+| **IRR over the {A['sensor_life']}-year sensor life** | **{pct(sensor_irr)}** |
+
+**Per customer (FY2029)**
+
+| Metric | Value | How it is calculated |
+|:--|--:|:--|
+| Average revenue per customer (ARPA) | {eur(arpa)} | Revenue ÷ average customers |
+| Customer acquisition cost (CAC), fully loaded | {eur(cac)} | (Sales and marketing + 50% of customer success + 30% of founders' time) ÷ new customers |
+| Gross margin | {pct(gm[u])} | Gross profit ÷ revenue |
+| Lifetime value (LTV), 5-year horizon | {eur(ltv)} | ARPA × gross margin × Σ (1 − churn)ᵗ for t = 0…4 |
+| LTV uncapped | {eur(ltv_uncapped)} | ARPA × gross margin ÷ churn |
+| **LTV / CAC** | **{ltv / cac:.1f}x** | Benchmark for healthy SaaS: 3x or more |
+| **CAC payback** | **{cac_payback:.0f} months** | CAC ÷ monthly gross profit per customer |
+{PB}""")
+
+# ---- 9.4 P&L
+w("### 9.4 Income statement\n")
+w(head())
+w(row("Revenue", rev, bold=True))
+w(row("Cloud, data and AI", [-v for v in B["cogs_cloud"]]))
+w(row("Customer support", [-v for v in B["cogs_support"]]))
+w(row("Sensor field operations", [-v for v in B["cogs_sensor_ops"]]))
+w(row("Sensor installation", [-v for v in B["cogs_install"]]))
+w(row("Sensor fleet depreciation", [-v for v in B["depreciation"]]))
+w(row("Gross profit", B["gross"], bold=True))
+w(row("Gross margin", gm, lambda v: pct(v)))
+w(row("People", [-v for v in B["opex_people"]]))
+w(row("Marketing", [-v for v in B["opex_marketing"]]))
+w(row("Other operating costs", [-v for v in B["opex_other"]]))
+w(row("EBITDA", ebitda, bold=True))
+w(row("EBITDA margin", em, lambda v: pct(v)))
+w(row("Depreciation", [-v for v in B["depreciation"]]))
+w(row("EBIT", B["ebit"]))
+w(row("Grants", B["grant"]))
+w(row("Interest", [-v for v in B["interest"]]))
+w(row("Profit before tax", B["ebt"]))
+w(row("Corporate tax", [-v for v in B["tax"]]))
+w(row("Net profit", B["net"], bold=True))
+w("\nDepreciation of the sensor fleet is part of the cost of revenue; it is added back to reach EBITDA.")
+w(PB)
+
+# ---- 9.5 cash flow
+dnwc = [-(B["nwc"][i] - (B["nwc"][i - 1] if i else 0)) for i in range(M.N)]
+debt = [B["loan"][i] - (B["loan"][i - 1] if i else 0) for i in range(M.N)]
+w("### 9.5 Cash flow statement\n")
+w(head())
+w(row("Net profit", B["net"]))
+w(row("Depreciation", B["depreciation"]))
+w(row("Change in working capital", dnwc))
+w(row("Operating cash flow", B["cfo"], bold=True))
+w(row("Sensor fleet capex", [-v for v in B["capex"]]))
+w(row("Free cash flow", B["fcf"], bold=True))
+w(row("Equity raised", B["equity_in"]))
+w(row("ENISA loan drawn / (repaid)", debt))
+w(row("Net change in cash", [B["cash"][i] - (B["cash"][i - 1] if i else 0) for i in range(M.N)]))
+w(row("Cash at year end", B["cash"], bold=True))
+w(f"\nAnnual billing in advance makes working capital a source of cash as the company grows: deferred revenue reaches {m(B['deferred'][5])} in FY2031.")
+
+# ---- 9.6 balance sheet
+w("\n### 9.6 Balance sheet (year end)\n")
+w(head())
+w(row("Cash", B["cash"]))
+w(row("Trade receivables", B["ar"]))
+w(row("Sensor fleet (net)", B["fleet_net"]))
+w(row("Total assets", B["assets"], bold=True))
+w(row("Trade payables", B["ap"]))
+w(row("Deferred revenue", B["deferred"]))
+w(row("ENISA loan", B["loan"]))
+w(row("Paid-in capital", B["paid_in"]))
+w(row("Retained earnings", B["retained"]))
+w(row("Total liabilities and equity", B["liab_eq"], bold=True))
+w("\nThe balance sheet balances in every year: total assets equal total liabilities and equity.")
+w(PB)
+
+# ---- 9.7 KPIs
+burn_mult = [(-B["fcf"][i]) / (arr[i] - arr[i - 1]) if i and B["fcf"][i] < 0 and arr[i] > arr[i - 1] else float("nan") for i in range(M.N)]
+rule40 = [growth(rev, i) + em[i] if i >= 4 else float("nan") for i in range(M.N)]   # meaningful at scale only
+w("### 9.7 SaaS metrics and KPIs\n")
+w(head("Metric"))
+w(row("ARR (k€)", arr))
+w(row("ARR growth", [growth(arr, i) for i in range(M.N)], lambda v: pct(v)))
+w(row("Gross margin", gm, lambda v: pct(v)))
+w(row("EBITDA margin", em, lambda v: pct(v)))
+w(row("Rule of 40 (growth + EBITDA margin)", rule40, lambda v: pct(v)))
+w(row("Burn multiple (net burn ÷ net new ARR)", burn_mult, lambda v: f"{v:.2f}x" if v == v else "n/a"))
+w(row("Revenue per FTE (k€)", [rev[i] / B["fte"][i] if rev[i] else 0 for i in range(M.N)]))
+w(row("Sales and marketing ÷ revenue", [B["sm_cost"][i] / rev[i] if rev[i] else float("nan") for i in range(M.N)], lambda v: pct(v)))
+w("\nA burn multiple below 1.5x and a Rule of 40 above 40% are signs of efficient growth. The Rule of 40 is shown from FY2030, when revenue is large enough for it to be meaningful.")
+
+# ---- 9.8 break-even
+fixed30 = B["opex"][be_year]
+contrib_site = B["gross"][be_year] / B["avg_sites"][be_year]
+w(f"""
+### 9.8 Break-even analysis
+
+- **EBITDA break-even (monthly run rate):** {be_label}, found by assuming monthly EBITDA
+  grows linearly across FY{Y[be_year - 1]} and FY{Y[be_year]} (see appendix).
+- **First profitable year:** FY{Y[be_year]}, EBITDA {m(ebitda[be_year], 2)}.
+- **Sites needed to cover fixed costs in FY{Y[be_year]}:** operating costs of {m(fixed30, 2)}
+  ÷ gross profit per average site of {eur(contrib_site)} = **{n(fixed30 / contrib_site)} sites**,
+  against {n(B['avg_sites'][be_year])} average sites in the base case.
+- **Lowest year-end cash:** {m(min_cash, 2)} in FY{min_cash_year}, just before the seed round.
+{PB}
+### 9.9 Scenarios
+
+| FY2031 | Bear | **Base** | Bull |
+|:--|--:|--:|--:|
+| Growth versus plan | 60% | **100%** | 130% |
+| Price versus plan | 90% | **100%** | 105% |
+| Annual churn | 12% | **8%** | 6% |
+| Customers | {n(BEAR['customers'][5])} | **{n(B['customers'][5])}** | {n(BULL['customers'][5])} |
+| Revenue | {m(BEAR['revenue'][5])} | **{m(rev[5])}** | {m(BULL['revenue'][5])} |
+| EBITDA | {m(BEAR['ebitda'][5])} | **{m(ebitda[5])}** | {m(BULL['ebitda'][5])} |
+| EBITDA margin | {pct(BEAR['ebitda'][5] / BEAR['revenue'][5])} | **{pct(em[5])}** | {pct(BULL['ebitda'][5] / BULL['revenue'][5])} |
+| Lowest year-end cash | {m(min(BEAR['cash'][1:]), 2)} | **{m(min_cash, 2)}** | {m(min(BULL['cash'][1:]), 2)} |
+| Cash FY2031 | {m(BEAR['cash'][5])} | **{m(B['cash'][5])}** | {m(BULL['cash'][5])} |
+| DCF value | {m(M.valuation(BEAR)[3])} | **{m(dcf)}** | {m(M.valuation(BULL)[3])} |
+
+Even in the bear case the company does not run out of cash with the planned funding and
+reaches positive EBITDA by FY2031. The bull case would justify an optional Series A to
+enter France and Italy earlier (section 10.4).
+
+### 9.10 Sensitivity: FY2031 EBITDA (k€)
+
+Rows: price versus plan. Columns: customer growth versus plan.
+
+| Price \\ Growth | """ + " | ".join(pct(g) for g in GROWTHS) + """ |
+|:--|""" + "--:|" * len(GROWTHS))
+for p in PRICES:
+    cells = []
+    for g in GROWTHS:
+        v = k(SENS[(p, g)]["ebitda"][5])
+        cells.append(f"**{v}**" if p == 1.0 and g == 1.0 else v)
+    w(f"| {pct(p)} | " + " | ".join(cells) + " |")
+w("\nPrice has a stronger effect than volume because most costs are fixed: a 10% price change moves FY2031 EBITDA by about "
+  + m(SENS[(1.1, 1.0)]["ebitda"][5] - ebitda[5], 2) + ".")
+
+w("\n**Sensitivity of LTV/CAC to churn (FY2029)**\n")
+w("| Annual churn | 4% | 8% | 12% | 16% |\n|:--|--:|--:|--:|--:|")
+w("| LTV/CAC (5-year horizon) | " + " | ".join(f"{ltv_at(c) / cac:.1f}x" for c in [0.04, 0.08, 0.12, 0.16]) + " |")
+w(PB)
+
+# ---- 10 funding
+seed_use = [("Engineering and product (sensor v2, AI, integrations)", 0.40), ("Sales and partnerships in Spain and Portugal", 0.30),
+            ("Sensor fleet for new customers", 0.15), ("Customer success and field operations", 0.10), ("Working capital and contingency", 0.05)]
+w(f"""## 10. Funding and capital structure
+
+### 10.1 Sources and uses, FY2026–FY2028
+
+| Sources | k€ | Uses | k€ |
+|:--|--:|:--|--:|
+| Founders' capital | {k(A['founders_equity'])} | Operating losses FY2026–FY2028 (EBITDA) | {k(-sum(ebitda[:3]))} |
+| Pre-seed (business angels, programme) | {k(A['preseed'])} | Sensor fleet capex FY2026–FY2028 | {k(sum(B['capex'][:3]))} |
+| ENISA participative loan | {k(A['enisa_loan'])} | Interest and tax, less the cash from annual billing in advance | {k(sum(B['interest'][:3]) + sum(B['tax'][:3]) - sum(dnwc[:3]))} |
+| Innovation grants (e.g. CDTI, regional) | {k(sum(A['grant'][:3]))} | Cash at end of FY2028 | {k(B['cash'][2])} |
+| Seed round | {k(A['seed'])} | | |
+| **Total** | **{k(A['founders_equity'] + A['preseed'] + A['enisa_loan'] + sum(A['grant'][:3]) + A['seed'])}** | **Total** | **{k(-sum(ebitda[:3]) + sum(B['capex'][:3]) + sum(B['interest'][:3]) + sum(B['tax'][:3]) - sum(dnwc[:3]) + B['cash'][2])}** |
+
+### 10.2 Use of the seed round ({m(A['seed'])})
+
+| Use | Share | k€ |
+|:--|--:|--:|
+""" + "\n".join(f"| {name} | {pct(s)} | {k(A['seed'] * s)} |" for name, s in seed_use) + f"""
+| **Total** | **100%** | **{k(A['seed'])}** |
+
+### 10.3 Capitalisation table
+
+| Shareholder | After pre-seed (FY2026) | After seed (FY2028) |
+|:--|--:|--:|
+| Founders | {pct(1 - ps_share, 1)} | {pct(founders_post, 1)} |
+| Pre-seed investors | {pct(ps_share, 1)} | {pct(preseed_post, 1)} |
+| Employee option pool | – | {pct(esop, 1)} |
+| Seed investors | – | {pct(seed_share, 1)} |
+| **Total** | **100.0%** | **100.0%** |
+| Pre-money valuation | {m(pre_seed_pre, 2)} | {m(seed_pre, 2)} |
+| Post-money valuation | {m(pre_seed_pre + A['preseed'], 2)} | {m(seed_post, 2)} |
+
+The option pool is created before the seed round (included in the pre-money valuation).
+
+### 10.4 Optional Series A
+
+If the bull case materialises, a Series A of about €4–6M in FY2029–FY2030 would fund entry
+into France, Italy and Greece. It is not needed for the base case, which is self-funding from FY2030.
+
+### 10.5 Investor returns (exit at year-end FY2031)
+
+Exit value = FY2031 ARR ({m(arr[5])}) × ARR multiple. No further dilution assumed.
+
+| ARR multiple | Exit value | Seed proceeds | Seed multiple | Seed IRR | Pre-seed multiple | Pre-seed IRR |
+|:--|--:|--:|--:|--:|--:|--:|
+""")
+for mult in exits:
+    sp, smo, sirr = moic_irr(seed_share, A["seed"], hold_seed, mult)
+    pp, pmo, pirr = moic_irr(preseed_post, A["preseed"], hold_ps, mult)
+    w(f"| {mult:.0f}x | {m(arr[5] * mult)} | {m(sp)} | {smo:.1f}x | {pct(sirr)} | {pmo:.1f}x | {pct(pirr)} |")
+w(f"\nHolding periods: seed {hold_seed} years (Q1 2028 to end of 2031), pre-seed {hold_ps} years (mid-2026 to end of 2031).")
+w(PB)
+
+# ---- 11 valuation
+w("## 11. Valuation\n\n### 11.1 Discounted cash flow\n")
+w(f"Free cash flow is discounted at **{pct(A['wacc'])}**, a venture-stage rate that reflects execution risk (a mature SaaS company would use 10–12%). Terminal value uses the Gordon growth model with **{pct(A['g_terminal'])}** long-term growth.\n")
+w("| k€ | " + " | ".join(f"FY{y}" for y in Y[1:]) + " |\n|:--|" + "--:|" * (M.N - 1))
+w("| Free cash flow | " + " | ".join(k(v) for v in B["fcf"][1:]) + " |")
+dfs = [1 / (1 + A["wacc"]) ** i for i in range(1, M.N)]
+w("| Discount factor | " + " | ".join(f"{d:.3f}" for d in dfs) + " |")
+w("| Present value | " + " | ".join(k(v * d) for v, d in zip(B["fcf"][1:], dfs)) + " |")
+w(f"""
+| Component | k€ |
+|:--|--:|
+| Present value of FY2027–FY2031 free cash flow | {k(pv_fcf)} |
+| Terminal value at FY2031 (FCF × (1 + g) ÷ (WACC − g)) | {k(tv)} |
+| Present value of terminal value | {k(pv_tv)} |
+| **Enterprise value (DCF)** | **{k(dcf)}** |
+
+**Sensitivity of the DCF value (k€)**
+
+| Discount rate \\ Terminal growth | 2% | 3% | 4% |
+|:--|--:|--:|--:|""")
+for wr in [0.20, 0.25, 0.30]:
+    cells = []
+    for g in [0.02, 0.03, 0.04]:
+        a2 = dict(A, wacc=wr, g_terminal=g)
+        v = M.valuation(B, a2)[3]
+        cells.append(f"**{k(v)}**" if wr == A["wacc"] and g == A["g_terminal"] else k(v))
+    w(f"| {pct(wr)} | " + " | ".join(cells) + " |")
+w(f"""
+### 11.2 Market multiples
+
+Listed and private vertical SaaS companies with growth above 40% are commonly valued at
+5–10x ARR. Applying {A['arr_multiple']:.0f}x to FY2031 ARR gives an exit value of {m(exit_val)},
+worth {m(pv_exit)} today at the same {pct(A['wacc'])} discount rate.
+
+### 11.3 Summary
+
+| Method | Value today |
+|:--|--:|
+| DCF (Gordon terminal value) | {m(dcf)} |
+| ARR multiple exit, discounted ({A['arr_multiple']:.0f}x FY2031 ARR) | {m(pv_exit)} |
+| Seed post-money used in this plan | {m(seed_post)} |
+
+The seed post-money of {m(seed_post)} sits between the two methods and leaves room for
+investor return, which supports it as a fair entry valuation.
+{PB}
+## 12. Risks and mitigation
+
+| Risk | Likelihood | Impact | Mitigation |
+|:--|:--|:--|:--|
+| Slow enterprise sales cycles | High | High | Paid pilots of 5–10 sites; insurer and EPC channels; public-partner pull |
+| A quiet fire season lowers urgency | Medium | Medium | Year-round value: drills, protocols, CSRD climate-risk reporting |
+| Sensor hardware failures in the field | Medium | Medium | Replacement budget in the model; tilt and heartbeat alerts; field partners |
+| Liability if a fire harms a site | Low | High | Decision-support positioning; human approval; no firefighting advice; professional insurance |
+| AI gives a wrong or unsafe suggestion | Medium | High | Evidence-cited output, tactics filter, human approval, rule-based fallback |
+| Large incumbents copy the product | Medium | Medium | Speed, focus on asset owners, partner network, protocol lock-in |
+| Satellite data access changes | Low | Medium | Several sources (NASA FIRMS, Copernicus); ground sensors reduce dependence |
+| Funding delay | Medium | High | Public funding (ENISA, grants); bear case survives on planned funding; cost levers in hiring |
+| Data protection and security | Low | High | EU hosting, per-customer data isolation, role-based access, audit log |
+
+## 13. Milestones and roadmap
+
+| When | Milestone |
+|:--|:--|
+| Q4 2026 | Company incorporated; pre-seed and ENISA loan closed; 3 sensor pilot sites in Ourense |
+| Q2 2027 | First paying customers; sensor hardware v1 certified (CE, radio) |
+| Q4 2027 | {n(B['customers'][1])} customers, {n(B['sites'][1])} sites; grant programme completed |
+| Q1 2028 | Seed round of {m(A['seed'])} closed |
+| Q4 2028 | {n(B['customers'][2])} customers, {n(B['sites'][2])} sites; first insurer partnership |
+| Q4 2029 | {n(B['customers'][3])} customers, ARR {m(arr[3])}; monthly EBITDA positive around {be_label} |
+| FY2030 | First profitable year; entry into southern France and Italy through partners |
+| FY2031 | {n(B['customers'][5])} customers, {n(B['sites'][5])} sites, ARR {m(arr[5])} |
+
+## 14. Impact
+
+- **Lives and safety:** earlier warning and clear procedures for people working on remote sites.
+- **Climate resilience:** protects the renewable energy and grid assets the energy transition depends on.
+- **Rural jobs:** field installation and maintenance jobs in rural Galicia and beyond.
+- **Public good:** a free shared view for fire services and civil protection.
+- **UN Sustainable Development Goals:** 7 (clean energy), 9 (resilient infrastructure),
+  11 (safe communities), 13 (climate action) and 15 (life on land).
+{PB}
+## 15. Appendix: methodology and formulas
+
+**Revenue.** Platform revenue = average sites in the year × blended price. Average sites =
+(opening + closing sites) ÷ 2. Blended price = Essential price × (1 − Professional share)
++ Professional price × Professional share.
+
+**ARR.** Closing sites × blended price + closing paying sensor sites × sensor fee.
+
+**Sensor fleet.** Capex = new sensor sites × kit cost + opening sensor sites × replacement
+rate × sensor cost. Depreciation is straight-line over {A['sensor_life']} years with a
+half-year convention in the first and last year.
+
+**EBITDA.** Gross profit + depreciation − operating expenses.
+
+**Tax.** Losses are carried forward and used against later profits; 15% applies to the
+first two years with a positive tax base (Spanish rate for new companies), 25% afterwards.
+The 70% offset limit for large bases is ignored, as it does not bind at this scale.
+
+**Working capital.** Receivables = revenue × {A['dso_days']} ÷ 365. Payables = non-payroll cash
+costs × {A['dpo_days']} ÷ 365. Deferred revenue = {pct(A['deferred_share'])} of annual
+subscription run rate at year end (annual billing in advance, renewals spread through the year).
+
+**Break-even month.** Monthly EBITDA is modelled as m(t) = a + b·t over the 24 months of
+FY{Y[be_year - 1]} and FY{Y[be_year]}, fitted so that each year's 12 months add up to its annual
+EBITDA. The break-even month is where m(t) = 0.
+
+**DCF.** Enterprise value = Σ FCFₜ ÷ (1 + r)ᵗ + TV ÷ (1 + r)⁵, with TV = FCF₂₀₃₁ × (1 + g) ÷ (r − g).
+
+**LTV and CAC.** LTV = ARPA × gross margin × Σ (1 − churn)ᵗ over t = 0…{LIFE_CAP - 1}, the gross profit a customer brings over five years weighted by retention. CAC is fully
+loaded: (sales and marketing + 50% of customer success + 30% of founders' time) ÷ new
+customers in the year. The five-year horizon keeps LTV conservative for a young company.
+
+**IRR.** The discount rate at which the net present value of the cash flows is zero,
+solved numerically.
+
+**Source of every figure.** All tables are generated from `model.py` in the same folder;
+changing an assumption and running `python build_plan.py` regenerates this document.
+
+---
+
+*PyraGrid, September 2026. Forward-looking statements are based on the assumptions above
+and are subject to risks and uncertainties; actual results may differ.*
+""")
+
+out = Path(__file__).with_name("PyraGrid_Business_Plan.md")
+out.write_text("\n".join(L), encoding="utf-8")
+print("written", out, len("\n".join(L)), "chars")

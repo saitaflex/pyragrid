@@ -14,3 +14,7 @@ backend/.env
 node_modules/
 dist/
 .vercel/
+
+# licensed fonts: deployed with the site, but not published in the public repo
+frontend/public/fonts/
+brand-source/

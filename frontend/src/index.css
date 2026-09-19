@@ -1,4 +1,12 @@
-/* Ember design system — cinematic dark theme with the §2.3 level palette. */
+/* PyraGrid design system — cinematic dark theme with the §2.3 level palette. */
+/* PyraGrid type: TAN St. Canard for big words (one weight: Regular), Helvetica Now Display
+   for everything else. Files live in public/fonts (licensed; kept out of the public repo). */
+@font-face { font-family: "TAN St Canard"; src: url("/fonts/TANStCanard-Regular.woff2") format("woff2"); font-weight: 400; font-style: normal; font-display: swap; }
+@font-face { font-family: "Helvetica Now Display"; src: url("/fonts/HelveticaNowDisplay-Light.woff2") format("woff2"); font-weight: 300; font-display: swap; }
+@font-face { font-family: "Helvetica Now Display"; src: url("/fonts/HelveticaNowDisplay-Regular.woff2") format("woff2"); font-weight: 400; font-display: swap; }
+@font-face { font-family: "Helvetica Now Display"; src: url("/fonts/HelveticaNowDisplay-Medium.woff2") format("woff2"); font-weight: 500; font-display: swap; }
+@font-face { font-family: "Helvetica Now Display"; src: url("/fonts/HelveticaNowDisplay-Bold.woff2") format("woff2"); font-weight: 600 800; font-display: swap; }
+
 
 :root {
   --bg: #08080a;
@@ -26,8 +34,8 @@
   --radius-sm: 10px;
   --shadow: 0 20px 60px -20px rgba(0, 0, 0, 0.8);
   --mono: "JetBrains Mono", ui-monospace, monospace;
-  --display: "Sora", system-ui, sans-serif;
-  --body: "Inter", system-ui, sans-serif;
+  --display: "TAN St Canard", "Georgia", serif;
+  --body: "Helvetica Now Display", "Helvetica Neue", Arial, system-ui, sans-serif;
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -74,8 +82,10 @@ button { font-family: inherit; cursor: pointer; }
 ::-webkit-scrollbar-track { background: transparent; }
 
 /* ---------- typography ---------- */
-h1, h2, h3, h4 { font-family: var(--display); font-weight: 700; letter-spacing: -0.02em; line-height: 1.05; }
-.display { font-family: var(--display); font-weight: 800; letter-spacing: -0.04em; line-height: 0.95; }
+h1, h2 { font-family: var(--display); font-weight: 400; letter-spacing: 0; line-height: 1.16; }
+h3, h4 { font-family: var(--body); font-weight: 700; letter-spacing: -0.01em; line-height: 1.15; }
+.display { font-family: var(--display); font-weight: 400; letter-spacing: 0; line-height: 1.16; }
+.eyebrow + .display, .eyebrow + h1 { margin-top: 8px; }
 .eyebrow {
   font-family: var(--mono); font-size: 12px; letter-spacing: 0.28em; text-transform: uppercase;
   color: var(--ember-2);
@@ -176,7 +186,7 @@ label { font-size: 12.5px; color: var(--text-dim); display: block; margin-bottom
 /* ---------- misc ---------- */
 .divider { height: 1px; background: var(--border); margin: 18px 0; }
 .tag-src { font-family: var(--mono); font-size: 11px; color: var(--text-dim); }
-.kpi { font-family: var(--display); font-weight: 800; font-size: clamp(30px, 5vw, 46px); letter-spacing: -0.03em; }
+.kpi { font-family: var(--body); font-weight: 700; font-size: clamp(30px, 5vw, 46px); letter-spacing: -0.03em; }
 .small { font-size: 12.5px; }
 .link { color: var(--ember-2); font-weight: 600; }
 .link:hover { text-decoration: underline; }
@@ -268,7 +278,7 @@ tr:hover td { background: var(--panel); }
 .sim-warning-card h2 { font-family: var(--display); font-size: clamp(26px, 4vw, 36px); line-height: 1.1; color: #fff; }
 .sim-warning-tag { color: var(--critical-hot); font-weight: 800; letter-spacing: .04em; font-size: 13px; }
 .sim-warning-card .btn { justify-self: start; }
-.report-fire { color: #fff !important; background: color-mix(in srgb, var(--critical-hot) 22%, transparent) !important; border: 1px solid var(--critical-hot) !important; }
+.report-fire { white-space: nowrap; color: #fff !important; background: color-mix(in srgb, var(--critical-hot) 22%, transparent) !important; border: 1px solid var(--critical-hot) !important; }
 @media (max-width: 960px) { .sim-grid { grid-template-columns: 1fr; } .sim-setup { grid-template-columns: 1fr 1fr; } }
 @media (max-width: 560px) { .sim-setup { grid-template-columns: 1fr; } }
 @media (prefers-reduced-motion: reduce) { .sim-map.alarm > div:nth-child(2), .sim-warning { animation: none; } }
@@ -277,3 +287,40 @@ tr:hover td { background: var(--panel); }
 .page-head-fire { position: relative; isolation: isolate; }
 .head-embers { position: absolute; inset: -40px -24px -10px; width: calc(100% + 48px); height: calc(100% + 50px); z-index: -1; pointer-events: none;
   -webkit-mask-image: linear-gradient(90deg, transparent, #000 15%, #000 85%, transparent); mask-image: linear-gradient(90deg, transparent, #000 15%, #000 85%, transparent); }
+
+/* ---- notification bell ---- */
+.bell { position: relative; }
+.bell-btn { position: relative; width: 38px; height: 38px; display: grid; place-items: center; border-radius: 50%;
+  background: var(--panel); border: 1px solid var(--border); color: var(--text-dim); cursor: pointer; }
+.bell-btn:hover { color: var(--text); border-color: var(--border-2); }
+.bell-btn.hot { color: var(--text); }
+.bell-btn.hot svg { animation: bell-ring 3.5s ease-in-out infinite; transform-origin: 50% 15%; }
+@keyframes bell-ring { 0%, 88%, 100% { transform: rotate(0); } 91% { transform: rotate(14deg); } 94% { transform: rotate(-12deg); } 97% { transform: rotate(6deg); } }
+.bell-badge { position: absolute; top: -4px; right: -4px; min-width: 18px; height: 18px; padding: 0 5px; border-radius: 999px;
+  background: var(--critical-hot); color: #fff; font-size: 11px; font-weight: 700; display: grid; place-items: center; font-variant-numeric: tabular-nums; }
+.bell-panel { position: absolute; right: 0; top: 46px; z-index: 70; width: min(380px, calc(100vw - 24px)); max-height: min(560px, calc(100svh - 90px));
+  display: flex; flex-direction: column; background: var(--bg-2); border: 1px solid var(--border-2); border-radius: 14px; box-shadow: var(--shadow); overflow: hidden; }
+.bell-top { display: flex; justify-content: space-between; align-items: center; padding: 14px 16px 8px; }
+.bell-top strong { font-size: 15px; }
+.bell-clear { background: none; border: 0; color: var(--text-mute); font: inherit; font-size: 13px; cursor: pointer; }
+.bell-clear:hover { color: var(--text); }
+.bell-filters { display: flex; gap: 6px; padding: 0 16px 10px; flex-wrap: wrap; }
+.bell-chip { border: 1px solid var(--border-2); background: transparent; color: var(--text-dim); border-radius: 999px; padding: 4px 10px; font: inherit; font-size: 12.5px; cursor: pointer; }
+.bell-chip.on { background: var(--text); color: var(--bg); border-color: var(--text); }
+.bell-scroll { overflow-y: auto; padding: 0 8px 8px; }
+.bell-section { font-size: 12px; color: var(--text-mute); padding: 12px 8px 6px; border-top: 1px solid var(--border); margin-top: 6px; }
+.bell-item { display: flex; gap: 10px; padding: 9px 8px; border-radius: 10px; color: inherit; text-decoration: none; }
+.bell-item i { flex: none; width: 8px; height: 8px; border-radius: 50%; margin-top: 6px; }
+.bell-item.unread { background: color-mix(in srgb, var(--ember) 8%, transparent); }
+.link-item:hover { background: var(--panel-2); }
+.bell-title { font-size: 13.5px; font-weight: 600; line-height: 1.35; }
+.bell-score { font-weight: 400; color: var(--text-mute); font-size: 12px; font-variant-numeric: tabular-nums; }
+.bell-body { font-size: 12.5px; color: var(--text-dim); margin-top: 2px; }
+.bell-at { font-size: 11px; color: var(--text-mute); margin-top: 3px; font-variant-numeric: tabular-nums; }
+.bell-empty { font-size: 13px; color: var(--text-mute); padding: 8px 8px 12px; }
+.bell-all { display: block; text-align: center; padding: 11px; border-top: 1px solid var(--border); font-size: 13.5px; font-weight: 600; color: var(--ember-2); }
+@media (prefers-reduced-motion: reduce) { .bell-btn.hot svg { animation: none; } }
+
+/* the top bar gets crowded: the data-source tag gives way first */
+@media (max-width: 1500px) { .tag-src { display: none !important; } }
+.nav-link { white-space: nowrap; }

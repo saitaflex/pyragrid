@@ -5,6 +5,7 @@ import { STAFF_ROLES, type DataSource } from "../api/types";
 import { useAuth } from "../state/AuthContext";
 import { BRAND } from "../brand";
 import { BrandMark } from "./BrandMark";
+import { NotificationBell } from "./NotificationBell";
 
 const SOURCE_LABEL: Record<DataSource, string> = {
   firms_sp: "NASA FIRMS", firms_nrt: "NASA FIRMS (NRT)", synthetic_fallback: "Synthetic demo data",
@@ -60,6 +61,7 @@ export function TopBar() {
             <span style={{ color: "var(--ember-2)" }}>{SOURCE_LABEL[src]}</span>
             <span className="mute">rules-1.0</span>
           </div>
+          {user && <NotificationBell staff={STAFF_ROLES.includes(user.role)} />}
           {user && (
             <div className="row" style={{ gap: 10 }}>
               <div style={{ textAlign: "right", lineHeight: 1.2 }}>

@@ -6,13 +6,17 @@ import { useTime } from "../state/TimeContext";
 import { useAsync } from "../hooks/useAsync";
 import { TimeSlider } from "../components/TimeSlider";
 import { LevelBadge } from "../components/LevelBadge";
-import { fmtTime } from "../api/levels";
+import { fmtTime, LEVEL_RANK as RANK } from "../api/levels";
 
 export function AlertsPage() {
   const { step } = useTime();
   const [filter, setFilter] = useState<"all" | "unacknowledged">("all");
   const [open, setOpen] = useState<string | null>(null);
-  const { data: alerts, reload } = useAsync(() => api.getAlerts(step, filter), [step, filter]);
+  const [minLevel, setMinLevel] = useState<0 | 2 | 3>(0);          // 0 all, 2 high and up, 3 critical only
+  const [serious, setSerious] = useState(false);                    // sort most serious first
+  const { data: all, reload } = useAsync(() => api.getAlerts(step, filter), [step, filter]);
+  const alerts = all?.filter((a) => RANK[a.to_level] >= minLevel)
+    .sort((a, b) => (serious ? RANK[b.to_level] - RANK[a.to_level] || b.score - a.score : 0) || b.at.localeCompare(a.at));
 
   const ack = async (id: string) => { await api.acknowledge(id); reload(); };
 
@@ -20,10 +24,15 @@ export function AlertsPage() {
     <div className="page"><div className="container grid" style={{ gap: 18 }}>
       <div className="between wrap">
         <div><div className="eyebrow">Alerts</div><h1 className="display" style={{ fontSize: "clamp(28px,3.6vw,42px)" }}>Level transitions</h1></div>
-        <div className="row" style={{ gap: 8 }}>
+        <div className="row wrap" style={{ gap: 8 }}>
           {(["all", "unacknowledged"] as const).map((f) => (
-            <button key={f} className={`btn sm ${filter === f ? "primary" : "ghost"}`} onClick={() => setFilter(f)}>{f}</button>
+            <button key={f} className={`btn sm ${filter === f ? "primary" : "ghost"}`} aria-pressed={filter === f} onClick={() => setFilter(f)}>{f}</button>
           ))}
+          <span style={{ width: 1, height: 22, background: "var(--border-2)" }} aria-hidden />
+          {([[0, "All levels"], [2, "High and up"], [3, "Critical only"]] as const).map(([v, label]) => (
+            <button key={v} className={`btn sm ${minLevel === v ? "primary" : "ghost"}`} aria-pressed={minLevel === v} onClick={() => setMinLevel(v)}>{label}</button>
+          ))}
+          <button className={`btn sm ${serious ? "primary" : "ghost"}`} aria-pressed={serious} onClick={() => setSerious((x) => !x)}>Most serious first</button>
         </div>
       </div>
       <TimeSlider />
@@ -65,7 +74,7 @@ export function AlertsPage() {
                 </AnimatePresence>
               </>
             ))}
-            {alerts?.length === 0 && <tr><td colSpan={6} className="dim small" style={{ padding: 24, textAlign: "center" }}>No alerts up to this time.</td></tr>}
+            {alerts?.length === 0 && <tr><td colSpan={6} className="dim small" style={{ padding: 24, textAlign: "center" }}>{minLevel ? "No alerts at this level up to this time." : "No alerts up to this time."}</td></tr>}
           </tbody>
         </table>
       </div>

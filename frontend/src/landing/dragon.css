@@ -1,0 +1,80 @@
+/* dragon.css — the PyraGrid intro at the top of the welcome page. Black ink on paper,
+   ember flames; the dark night outside the paper matches the rest of the page. */
+.dr { --paper: #FAF9F6; --ink: #0A0A0A; --muted: #5E5A54; --flame: #C53A19; --ember-i: #F07A2A;
+  position: relative; height: 480svh; background: #0F1519; }
+.dr-stage { position: sticky; top: 0; height: 100svh; overflow: hidden; isolation: isolate;
+  display: grid; grid-template-rows: auto minmax(0, 1fr) auto; }
+.dr-paper { position: absolute; inset: 0; z-index: -2; background: var(--paper); clip-path: circle(0px at 50% 50%); }
+.dr.revealed .dr-paper { clip-path: none; }
+.dr-glow { position: absolute; inset: 0; z-index: -1; opacity: 0; pointer-events: none;
+  background: radial-gradient(closest-side at 50% 42%, rgba(240, 122, 42, .32), rgba(240, 122, 42, 0) 70%); }
+
+/* header: brand and links, ink on paper once revealed */
+.dr-head { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 18px clamp(16px, 4vw, 40px); }
+.dr-mark { font-family: var(--display); font-size: 26px; color: var(--ink); opacity: 0; transition: opacity .6s; }
+.dr.revealed .dr-mark { opacity: 1; }
+.dr-head-links { display: flex; gap: 14px; align-items: center; }
+.dr-link { color: #BDB8B0; font-weight: 600; font-size: 15px; text-decoration: underline; text-underline-offset: 4px; }
+.dr.revealed .dr-link { color: var(--ink); }
+.dr-skip { background: transparent; color: #BDB8B0; border: 1px solid #3A3733; padding: 6px 14px; border-radius: 999px; font: inherit; font-size: 14px; cursor: pointer; }
+.dr.revealed .dr-skip { color: var(--ink); border-color: rgba(10, 10, 10, .3); }
+
+/* the art takes only the space the header and captions leave, so text never covers it */
+.dr-art { min-height: 0; display: grid; place-items: center; padding-inline: 16px; }
+.dr-dragon { position: relative; width: min(86vw, calc((100svh - 330px) * 1.0726), 580px); aspect-ratio: 473 / 441; max-width: 100%; }
+.dr-layer { position: absolute; display: block; height: auto; user-select: none; -webkit-user-drag: none; pointer-events: none; will-change: transform; }
+.dr-layer img, .dr-flame img { display: block; width: 100%; height: auto; }
+.dr-flame { transform: scale(0); opacity: 0; }
+.dr-flame img { animation: dr-flicker 1.1s ease-in-out infinite; }
+.dr-flame.lit img { filter: drop-shadow(0 0 5px rgba(240, 122, 42, .55)); }
+@keyframes dr-flicker {
+  0% { transform: scale(1, 1) skewY(0deg); } 20% { transform: scale(1.06, .95) skewY(-2deg); }
+  45% { transform: scale(.95, 1.05) skewY(1.5deg); } 70% { transform: scale(1.04, .97) skewY(-1deg); } 100% { transform: scale(1, 1) skewY(0deg); } }
+.dr-snaps { opacity: 0; }
+.dr-eye { position: absolute; transform: scaleY(0); transform-origin: 50% 50%; transition: transform .16s cubic-bezier(.3, 1.4, .5, 1); }
+.dr-eye img { position: absolute; inset: 0; width: 100%; }
+.dr-pupil { transition: transform .25s ease-out; }
+.dr-eye.open { transform: scaleY(1); }
+.dr-eye.blink { transform: scaleY(.08); transition-duration: .07s; }
+.dr-dragon.glowing .dr-eye img:first-child { filter: drop-shadow(0 0 4px rgba(255, 190, 120, .9)); }
+
+/* captions: their own row under the dragon (scoped under .dr so the dark page's text colours don't apply) */
+.dr-captions { position: relative; min-height: 210px; padding: 8px clamp(16px, 5vw, 48px) 30px;
+  display: grid; justify-items: center; align-items: start; text-align: center; transition: opacity .6s; }
+.dr:not(.revealed) .dr-captions { opacity: 0; }
+.dr-cap { grid-area: 1 / 1; max-width: 40ch; opacity: 0; transform: translateY(6px); transition: opacity .45s, transform .45s; pointer-events: none; }
+.dr-cap.on { opacity: 1; transform: none; pointer-events: auto; }
+.dr .dr-cap h2 { margin: 0 0 .35em; font-family: var(--display); font-weight: 400; font-size: clamp(26px, 3.4vw, 38px); line-height: 1.08; color: var(--ink); text-wrap: balance; }
+.dr .dr-cap p { margin: 0 auto; font-family: var(--body); font-size: clamp(16px, 1.7vw, 18px); line-height: 1.5; color: var(--muted); }
+.dr .dr-cap.hint p { font-size: 15px; }
+.dr .dr-cap.final h2 { font-size: clamp(48px, 8vw, 92px); line-height: .95; margin-bottom: .2em; }
+.dr-cue { display: block; margin: 10px auto 0; width: 2px; height: 26px; background: linear-gradient(var(--muted), transparent); animation: dr-cue 1.6s ease-in-out infinite; }
+@keyframes dr-cue { 0%, 100% { transform: translateY(0); opacity: .4; } 50% { transform: translateY(6px); opacity: 1; } }
+.dr-actions { margin-top: 18px; display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
+.dr-btn { background: var(--ink); color: var(--paper); border: 0; padding: 11px 22px; border-radius: 999px; font: inherit; font-weight: 700; font-size: 15px; cursor: pointer; text-decoration: none; }
+.dr-btn:hover { background: var(--flame); }
+.dr-btn.quiet { background: transparent; color: var(--ink); box-shadow: inset 0 0 0 1.5px var(--ink); }
+.dr-btn.quiet:hover { background: rgba(10, 10, 10, .06); }
+.dr-btn:disabled { opacity: .6; cursor: progress; }
+.dr :focus-visible { outline: 3px solid var(--ember-i); outline-offset: 3px; }
+.dr-progress { position: absolute; right: clamp(12px, 3vw, 32px); top: 50%; transform: translateY(-50%); display: grid; gap: 10px; opacity: 0; transition: opacity .4s; }
+.dr.revealed .dr-progress { opacity: 1; }
+.dr-progress i { display: block; width: 8px; height: 8px; border-radius: 50%; border: 1.5px solid var(--ink); transition: background .3s; }
+.dr-progress i.on { background: var(--flame); border-color: var(--flame); }
+
+@media (max-width: 560px) {
+  .dr-dragon { width: min(90vw, calc((100svh - 340px) * 1.0726)); }
+  .dr-captions { min-height: 230px; }
+  .dr-progress { display: none; }
+}
+/* reduced motion: the finished state, everything readable, no scroll-jacking */
+.dr.still { height: auto; }
+.dr.still .dr-stage { position: relative; height: auto; min-height: 100svh; }
+.dr.still .dr-flame { transform: none; opacity: 1; }
+.dr.still .dr-flame img, .dr.still .dr-cue { animation: none; }
+.dr.still .dr-snaps { opacity: 1; }
+.dr.still .dr-eye { transform: none; transition: none; }
+.dr.still .dr-captions { gap: 18px; }
+.dr.still .dr-cap { grid-area: auto; opacity: 1; transform: none; }
+.dr.still .dr-cap.hint { display: none; }
+@media (prefers-reduced-motion: reduce) { .dr-cap, .dr-mark, .dr-captions { transition: none; } }

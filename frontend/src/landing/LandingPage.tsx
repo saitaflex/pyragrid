@@ -1,11 +1,10 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../state/AuthContext";
-import { BRAND } from "../brand";
-import { BrandMark } from "../components/BrandMark";
 import { Embers } from "./Embers";
 import { FirePlay } from "./FirePlay";
 import { ScrollScenario } from "./ScrollScenario";
+import { DragonIntro } from "./DragonIntro";
 import "./landing.css";
 
 const ROLES = [
@@ -30,17 +29,11 @@ export function LandingPage() {
 
   return (
     <div className="lp">
+      <DragonIntro onDemo={() => enter("admin@demo.eu", "/")} busy={busy === "admin@demo.eu"} />
       <header className="lp-hero">
         <div className="lp-hero-img" role="img" aria-label="A solar farm in the Galician hills at dusk with a wildfire burning on the far ridge" />
         <Embers />
         <div className="lp-hero-shade" />
-        <nav className="lp-nav">
-          <span className="lp-brand"><BrandMark size={36} />{BRAND.name}</span>
-          <span className="lp-nav-links">
-            <a href="/intro.html" className="lp-link">Watch the intro</a>
-            <Link to="/login" className="lp-link">Sign in</Link>
-          </span>
-        </nav>
         <div className="lp-hero-copy">
           <h1>Know where the fire is before it reaches your site.</h1>
           <p>Satellite detections, ground sensors and your own emergency protocol on one screen, for the control room, the fire service and the people who live nearby.</p>

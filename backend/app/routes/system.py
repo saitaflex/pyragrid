@@ -59,7 +59,7 @@ def _database_source() -> SourceStatus:
 
 def _advisor_source() -> SourceStatus:
     if os.environ.get("GROQ_API_KEY"):
-        model = os.environ.get("GROQ_MODEL", "llama-3.3-70b-versatile")
+        model = os.environ.get("GROQ_MODEL", "openai/gpt-oss-120b")
         return SourceStatus(name="AI Advisor", state="ONLINE", detail=f"Groq {model}")
     if os.environ.get("OLLAMA_URL"):
         model = os.environ.get("OLLAMA_MODEL", "llama3.1")

@@ -1103,7 +1103,7 @@ Track 2 saves each of the 18 blocks as `frontend/src/mocks/<name>.json`. Track 1
  {
   "name": "AI Advisor",
   "state": "ONLINE",
-  "detail": "Groq llama-3.3-70b-versatile"
+  "detail": "Groq openai/gpt-oss-120b"
  }
 ]
 ```
@@ -1179,7 +1179,7 @@ Track 2 saves each of the 18 blocks as `frontend/src/mocks/<name>.json`. Track 1
  "incident_id": "ES-OU-001_20250814T0600",
  "at": "2025-08-14T15:00:00Z",
  "generated_by": "groq",
- "model": "llama-3.3-70b-versatile",
+ "model": "openai/gpt-oss-120b",
  "created_at": "2026-09-18T10:06:00Z",
  "evidence_keys": [
   "asset:criticality",
@@ -1385,7 +1385,7 @@ Only the two humans can change Section 2, together. Then: update `docs/TEAM_PLAN
 ```
 backend/
 ├── .env.example         FIRMS_MAP_KEY=  JWT_SECRET=  ASSUMED_WEATHER=true  DATABASE_URL=
-│                        GROQ_API_KEY=  GROQ_MODEL=llama-3.3-70b-versatile  OLLAMA_URL=  OLLAMA_MODEL=llama3.1
+│                        GROQ_API_KEY=  GROQ_MODEL=openai/gpt-oss-120b  OLLAMA_URL=  OLLAMA_MODEL=llama3.1
 ├── .python-version      3.12
 ├── vercel.json
 ├── requirements.txt  requirements-dev.txt
@@ -1625,7 +1625,7 @@ A rule matches when it is enabled **and** `rank(level) >= rank(min_level)` **and
 3. Try engines in order, stopping at the first that yields at least one valid suggestion: **Groq** if `GROQ_API_KEY` is set, **Ollama** if `OLLAMA_URL` is set, then the **template engine** (always works). Record `fallback_reason` when a later engine was used: `"no LLM configured"`, `"LLM error: <short message>"` or `"LLM output failed validation"`.
 4. Store each suggestion in `advisor_suggestions` (data = JSON of the response entry plus `generated_by`, `incident_id`, `title`), write audit `advisor_generate`, return `AdvisorResponse` with `created_at` = now, `at` = snapped `at`.
 
-**Groq call:** `POST https://api.groq.com/openai/v1/chat/completions`, header `Authorization: Bearer $GROQ_API_KEY`, body `{"model": GROQ_MODEL, "temperature": 0.2, "max_tokens": 1200, "response_format": {"type": "json_object"}, "messages": [system, user]}`; text in `choices[0].message.content`. Default model `llama-3.3-70b-versatile` (a Groq production model as of Sept 2026; if Groq has retired it, pick a current production model from the Groq console and set `GROQ_MODEL`). Timeout `LLM_TIMEOUT_S`.
+**Groq call:** `POST https://api.groq.com/openai/v1/chat/completions`, header `Authorization: Bearer $GROQ_API_KEY`, body `{"model": GROQ_MODEL, "temperature": 0.2, "max_tokens": 1200, "response_format": {"type": "json_object"}, "messages": [system, user]}`; text in `choices[0].message.content`. Default model `openai/gpt-oss-120b` (a Groq production model as of Sept 2026; if Groq has retired it, pick a current production model from the Groq console and set `GROQ_MODEL`). Timeout `LLM_TIMEOUT_S`.
 **Ollama call (local dev only):** `POST {OLLAMA_URL}/api/chat` with `{"model": OLLAMA_MODEL, "stream": false, "format": "json", "messages": [...]}`; text in `message.content`.
 
 **System prompt (use verbatim):**
@@ -1800,7 +1800,7 @@ Commit `package-lock.json`. `VITE_*` variables are baked in **at build time**: a
 
 1. **Engine project (Track 1's human):** vercel.com → Add New → Project → import the repo → **Root Directory = `backend`** → framework is detected as FastAPI → Deploy.
 2. **Database:** in the Engine project → Storage (Marketplace) → **Neon Postgres** → create (free) → connect to the project. `DATABASE_URL` is injected automatically.
-3. **Engine env vars** (Settings → Environment Variables): `JWT_SECRET` (a long random string), `GROQ_API_KEY` (free key from console.groq.com), `GROQ_MODEL=llama-3.3-70b-versatile`, `ASSUMED_WEATHER=true`. Redeploy.
+3. **Engine env vars** (Settings → Environment Variables): `JWT_SECRET` (a long random string), `GROQ_API_KEY` (free key from console.groq.com), `GROQ_MODEL=openai/gpt-oss-120b`, `ASSUMED_WEATHER=true`. Redeploy.
 4. Check `https://<engine>.vercel.app/api/health` and `/api/status/sources` (after login) show contract 2.1.0, Database ONLINE, AI Advisor ONLINE.
 5. **Console project (Track 2's human):** Add New → Project → same repo → **Root Directory = `frontend`** → framework Vite → env vars `VITE_API_BASE_URL=https://<engine>.vercel.app` (no trailing slash) and `VITE_USE_MOCKS=false` → Deploy.
 6. Share the **Production** URLs (from the `main` branch). Vercel may protect *preview* deployments behind a Vercel login, so judges must get the Production URL.

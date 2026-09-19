@@ -28,7 +28,7 @@ def _parse(text: str) -> list[dict]:
 
 class GroqProvider(LLMProvider):
     def __init__(self) -> None:
-        self.model = os.environ.get("GROQ_MODEL", "llama-3.3-70b-versatile")
+        self.model = os.environ.get("GROQ_MODEL", "openai/gpt-oss-120b")
         self._key = os.environ["GROQ_API_KEY"]
 
     def suggest(self, system_prompt: str, user_message: str) -> list[dict]:

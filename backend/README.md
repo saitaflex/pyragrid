@@ -34,7 +34,7 @@ assets, edits SOP rules and reads the audit log. `othercorp` (one asset) proves 
 | `DATABASE_URL` | Postgres (Neon) connection; unset → SQLite | unset |
 | `ASSUMED_WEATHER` | Use assumed weather when no archive file | `true` |
 | `GROQ_API_KEY` | Enables the Groq LLM advisor | unset → template engine |
-| `GROQ_MODEL` | Groq model id | `llama-3.3-70b-versatile` |
+| `GROQ_MODEL` | Groq model id | `openai/gpt-oss-120b` |
 | `OLLAMA_URL` / `OLLAMA_MODEL` | Local-dev LLM advisor | unset / `llama3.1` |
 | `FIRMS_MAP_KEY` | NASA FIRMS key for `fetch_firms.py` | unset → synthetic |
 

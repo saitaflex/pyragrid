@@ -45,7 +45,7 @@ export const SITE_TYPE_LABEL: Record<string, string> = {
   forest_block: "Forest block", telecom_tower: "Telecom tower", test_plot: "Test plot",
 };
 
-// Ground-sensor states (hex mesh). Distinct from risk levels on purpose: grey = silent, cyan = moved.
+// Ground-sensor states. Distinct from risk levels on purpose: grey = silent, cyan = moved.
 export const SENSOR_COLOR: Record<string, string> = {
   ok: "#3FA34D", warm: "#F9A825", fire: "#FF3B30", offline: "#6F6B78", dropped: "#4FC3F7",
 };
@@ -53,3 +53,6 @@ export const SENSOR_LABEL: Record<string, string> = {
   ok: "OK", warm: "Warm", fire: "Fire", offline: "Offline (died)", dropped: "Dropped (moved)",
 };
 export const SENSOR_STATES = ["fire", "warm", "dropped", "offline", "ok"] as const;
+export const SENSOR_KIND_LABEL: Record<string, string> = {
+  structure: "At a building", vegetation: "At vegetation edge", fence: "On site fence", grid: "Open ground",
+};

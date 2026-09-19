@@ -374,6 +374,7 @@ class HandoffPack(BaseModel):
 
 # ---------------------------------------------------------------- ground sensors
 SensorState = Literal["ok", "warm", "fire", "offline", "dropped"]
+SensorKind = Literal["fence", "structure", "vegetation", "grid"]
 SensorEventKind = Literal["warm", "fire", "offline", "dropped", "recovered"]
 
 
@@ -381,10 +382,14 @@ class SensorNode(BaseModel):
     sensor_id: str
     site_id: str
     label: str
-    ring: int
+    ring: int                       # 0 site/fence, 1 inner buffer, 2 outer buffer
     lat: float
     lon: float
-    hex: list[list[float]]          # closed polygon, [lon, lat] pairs
+    kind: SensorKind                # what it is mounted on
+    place: str                      # "House", "Cabin", "Forest edge", "Site fence (N)", ...
+    name: str                       # OSM name of the place, if any
+    dist_m: int                     # from the site centre
+    bearing_deg: int                # from the site centre
     state: SensorState
     temp_c: Optional[float]         # None when the node is offline
     battery_pct: int
@@ -399,9 +404,22 @@ class SensorEvent(BaseModel):
     site_id: str
     site_name: str
     label: str
+    place: str
     kind: SensorEventKind
     temp_c: Optional[float]
     detail: str
+
+
+class FireEstimate(BaseModel):
+    """Fire position combined from all warm/fire sensors of one site."""
+    lat: float
+    lon: float
+    radius_m: int                   # uncertainty
+    sensors: int                    # how many sensors contributed
+    confidence: Literal["low", "medium", "high"]
+    distance_m: int                 # from the site centre
+    bearing_deg: int
+    hottest: str
 
 
 class SensorMesh(BaseModel):
@@ -410,11 +428,13 @@ class SensorMesh(BaseModel):
     lat: float
     lon: float
     installed_at: str
-    spacing_m: int
     coverage_m: int
     nodes: int
     counts: dict[str, int]
+    placement: dict[str, int]       # sensors per mount kind
+    layout_source: Literal["openstreetmap", "grid"]
     ground_fire: bool
+    fire_estimate: Optional[FireEstimate]
 
 
 class SensorsResponse(BaseModel):
@@ -554,4 +574,5 @@ class DrillView(BaseModel):
     responses: list[DrillResponse]          # admin: everyone; others: own only
     notifications: list[DrillNotification]
     nodes: list[SensorNode]
+    fire_estimate: Optional[FireEstimate]
     disclaimer: str

@@ -49,7 +49,7 @@ export function SituationPage() {
       </div>
 
       <div className="grid" style={{ gridTemplateColumns: "1.5fr 1fr", gap: 18, alignItems: "start" }}>
-        <SiteMap sites={sit?.sites ?? []} detections={dets ?? []} sensors={sensors?.nodes ?? []} height={500} />
+        <SiteMap sites={sit?.sites ?? []} detections={dets ?? []} sensors={sensors?.nodes ?? []} estimates={(sensors?.meshes ?? []).flatMap((m) => (m.fire_estimate ? [m.fire_estimate] : []))} height={500} />
         <div className="card" style={{ maxHeight: 500, overflow: "auto" }}>
           <div className="eyebrow" style={{ marginBottom: 8 }}>Ground sensor events</div>
           <SensorEventList events={sensors?.events ?? []} max={25} />

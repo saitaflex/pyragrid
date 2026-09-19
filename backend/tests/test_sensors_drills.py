@@ -8,17 +8,36 @@ from tests.conftest import auth
 AT = "2025-08-20T00:00:00Z"
 
 
-def test_sensor_mesh_is_hexagonal_and_seeded(client):
+def test_sensors_are_placed_on_real_places_and_seeded(client):
     r = client.get(f"/api/sensors?at={AT}", headers=auth(client))
     assert r.status_code == 200
     body = r.json()
     assert sorted(m["site_id"] for m in body["meshes"]) == sorted(DEMO_SENSOR_SITES)
-    assert all(m["nodes"] == 37 for m in body["meshes"])
-    node = body["nodes"][0]
-    assert len(node["hex"]) == 7 and node["hex"][0] == node["hex"][-1]
+    for m in body["meshes"]:
+        assert m["placement"]["fence"] == 6 and m["nodes"] == sum(m["placement"].values())
+        nodes = [n for n in body["nodes"] if n["site_id"] == m["site_id"]]
+        assert all(n["dist_m"] <= m["coverage_m"] + 5 for n in nodes)
+    assert any(m["placement"]["vegetation"] > 0 for m in body["meshes"])  # OSM places used
+    assert {n["kind"] for n in body["nodes"]} <= {"fence", "structure", "vegetation", "grid"}
     assert {n["state"] for n in body["nodes"]} <= {"ok", "warm", "fire", "offline", "dropped"}
     kinds = {e["kind"] for e in body["events"]}
-    assert "fire" in kinds and "offline" in kinds   # fire reached meshes and destroyed nodes
+    assert "fire" in kinds and "offline" in kinds   # fire reached sensors and destroyed some
+
+
+def test_hot_sensors_are_combined_into_one_fire_position(client):
+    body = client.get("/api/sensors?at=2025-08-14T15:00:00Z", headers=auth(client)).json()
+    burning = [m for m in body["meshes"] if m["ground_fire"]]
+    assert burning
+    for m in burning:
+        est = m["fire_estimate"]
+        hot = [n for n in body["nodes"] if n["site_id"] == m["site_id"]
+               and n["state"] in ("warm", "fire")]
+        assert est["sensors"] == len(hot)
+        # the estimate lies within the hot sensors' bounding box
+        assert min(n["lat"] for n in hot) - 1e-6 <= est["lat"] <= max(n["lat"] for n in hot) + 1e-6
+        assert min(n["lon"] for n in hot) - 1e-6 <= est["lon"] <= max(n["lon"] for n in hot) + 1e-6
+    quiet = [m for m in body["meshes"] if m["counts"]["warm"] + m["counts"]["fire"] == 0]
+    assert all(m["fire_estimate"] is None for m in quiet)
 
 
 def test_sensor_install_admin_only(client):
@@ -139,3 +158,26 @@ def test_drill_rules(client):
     assert client.post("/api/drills", headers=admin, json={
         "site_id": "ES-OU-005", "scenario": "approaching",
         "participants": ["fire@demo.eu"]}).status_code == 422
+
+
+def test_advisor_uses_ground_sensors(client):
+    at = "2025-08-14T15:00:00Z"
+    h = auth(client)
+    burning = {m["site_id"] for m in client.get(f"/api/sensors?at={at}", headers=h).json()["meshes"]
+               if m["fire_estimate"]}
+    inc = next(i for i in client.get(f"/api/incidents?at={at}", headers=h).json()
+               if i["site_id"] in burning)
+    r = client.post(f"/api/advisor/incidents/{inc['incident_id']}?at={at}", headers=h).json()
+    assert "sensors:fire_estimate" in r["evidence_keys"]
+    cited = [s for s in r["suggestions"] if "sensors:fire_estimate" in s["evidence"]]
+    assert cited and cited[0]["audience"] == "fire_service_liaison"
+
+
+def test_drill_signals_use_distinct_sensors_on_every_sensor_site():
+    from app.importer import seed_sites
+    sites = {s.site_id: s for s in seed_sites()}
+    for sid in DEMO_SENSOR_SITES:
+        for scenario in ("approaching", "sensor_first"):
+            fires = [st.sensor_id for st in drills.build_script(sites[sid], scenario, 10, True, 225)
+                     if st.kind == "sensor_fire"]
+            assert len(fires) == 2 and fires[0] != fires[1], (sid, scenario)

@@ -268,18 +268,24 @@ export interface HandoffPack {
 
 // ---- ground sensors (hexagonal mesh) ----
 export type SensorState = "ok" | "warm" | "fire" | "offline" | "dropped";
+export type SensorKind = "fence" | "structure" | "vegetation" | "grid";
 export interface SensorNode {
   sensor_id: string; site_id: string; label: string; ring: number; lat: number; lon: number;
-  hex: [number, number][]; state: SensorState; temp_c: number | null; battery_pct: number;
+  kind: SensorKind; place: string; name: string; dist_m: number; bearing_deg: number; state: SensorState; temp_c: number | null; battery_pct: number;
   last_seen: string | null; state_since: string | null; note: string;
 }
 export interface SensorEvent {
-  at: string; sensor_id: string; site_id: string; site_name: string; label: string;
+  at: string; sensor_id: string; site_id: string; site_name: string; label: string; place: string;
   kind: "warm" | "fire" | "offline" | "dropped" | "recovered"; temp_c: number | null; detail: string;
+}
+export interface FireEstimate {
+  lat: number; lon: number; radius_m: number; sensors: number; confidence: "low" | "medium" | "high";
+  distance_m: number; bearing_deg: number; hottest: string;
 }
 export interface SensorMesh {
   site_id: string; site_name: string; lat: number; lon: number; installed_at: string;
-  spacing_m: number; coverage_m: number; nodes: number; counts: Record<SensorState, number>; ground_fire: boolean;
+  coverage_m: number; nodes: number; counts: Record<SensorState, number>; placement: Record<SensorKind, number>;
+  layout_source: "openstreetmap" | "grid"; ground_fire: boolean; fire_estimate: FireEstimate | null;
 }
 export interface SensorsResponse { at: string; meshes: SensorMesh[]; nodes: SensorNode[]; events: SensorEvent[] }
 
@@ -318,5 +324,5 @@ export interface DrillView {
   participants: string[]; participant_names: Record<string, string>; options: string[]; expected_actions: string[] | null;
   my_response: DrillResponse | null; responses: DrillResponse[];
   notifications: { to: string; channel: "in_app" | "email"; subject: string }[];
-  nodes: SensorNode[]; disclaimer: string;
+  nodes: SensorNode[]; fire_estimate: FireEstimate | null; disclaimer: string;
 }

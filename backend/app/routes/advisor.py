@@ -7,7 +7,7 @@ from datetime import datetime, timezone
 from fastapi import APIRouter, Depends, HTTPException
 
 from app import advisor as advisor_mod
-from app import service, state
+from app import sensors, service, state
 from app.auth import AuthUser, require_admin, require_staff
 from app.db import get_db
 from app.models import (
@@ -75,7 +75,13 @@ def generate(incident_id: str, at: str | None = None,
     site = rd.sites[inc.site_id]
     status = service.with_sop(rd.status_at(inc.site_id, at), site, rules)
     headline = rd.headline_at(inc.site_id, at)
-    resp = advisor_mod.generate(site, status, headline, rules, incident_id, at)
+    ground = None
+    installs = get_db().list_installs(user.customer_id)
+    if inc.site_id in installs:
+        meshes, nodes, _ = sensors.snapshot(rd.sites, installs, at, site_id=inc.site_id,
+                                            event_limit=0)
+        ground = (meshes[0], nodes) if meshes else None
+    resp = advisor_mod.generate(site, status, headline, rules, incident_id, at, ground)
     _store(user.customer_id, resp)
     get_db().add_audit(user.customer_id, _now(), user.email, "advisor_generate", incident_id)
     return resp

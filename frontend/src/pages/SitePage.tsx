@@ -8,7 +8,7 @@ import { SiteMap } from "../components/SiteMap";
 import { FactorBars } from "../components/FactorBars";
 import { LevelBadge } from "../components/LevelBadge";
 import { Reveal } from "../components/Reveal";
-import { MeshCounts, SensorEventList, SensorLegend } from "../components/Sensors";
+import { EstimateLine, MeshCounts, PlacementLine, SensorEventList, SensorLegend } from "../components/Sensors";
 import { AdminOnly } from "../components/RouteGuards";
 import { LEVEL_COLOR, SITE_TYPE_LABEL, compass, eur, fmtTime } from "../api/levels";
 
@@ -57,7 +57,7 @@ export function SitePage() {
           </div>
         </Reveal>
         <Reveal delay={0.05}>
-          {st && <SiteMap sites={[st]} detections={dets ?? []} sensors={sens?.nodes ?? []} center={[st.lon, st.lat]} zoom={mesh ? 12 : 11} height={300} />}
+          {st && <SiteMap sites={[st]} detections={dets ?? []} sensors={sens?.nodes ?? []} estimates={mesh?.fire_estimate ? [mesh.fire_estimate] : []} center={[st.lon, st.lat]} zoom={mesh ? 13.1 : 11} height={340} />}
           <div className="card" style={{ marginTop: 14, display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
             <Field label="Threat" value={st?.nearest_fire_km !== null && st ? `Fire ${st.nearest_fire_km!.toFixed(1)} km ${compass(st.fire_bearing_deg!)}` : "No fire within 25 km"} />
             <Field label="Fire moving toward site" value={st?.fire_moving_toward_site === null ? "Unknown" : st?.fire_moving_toward_site ? "Yes" : "No"} />
@@ -72,19 +72,21 @@ export function SitePage() {
       <Reveal>
         <div className="card grid" style={{ gap: 12 }}>
           <div className="between wrap">
-            <div className="eyebrow">Ground sensors · hexagonal mesh</div>
+            <div className="eyebrow">Ground sensors</div>
             <div className="row wrap" style={{ gap: 12 }}>
               {mesh && <SensorLegend />}
-              {!sensErr && <AdminOnly><button className="btn sm ghost" onClick={toggleMesh}>{mesh ? "Remove mesh" : "Install sensor mesh"}</button></AdminOnly>}
+              {!sensErr && <AdminOnly><button className="btn sm ghost" onClick={toggleMesh}>{mesh ? "Remove sensors" : "Install sensors"}</button></AdminOnly>}
             </div>
           </div>
           {sensErr ? <div className="small dim">{sensErr}</div> : !mesh ? (
-            <div className="small dim">No sensors on this site. The mesh is optional: 37 temperature nodes on a hexagonal grid confirm satellite detections on the ground, and see fire at night or under cloud.</div>
+            <div className="small dim">No sensors on this site. They are optional: temperature sensors placed on the fence, nearby buildings and vegetation edges confirm satellite detections on the ground, see fire at night or under cloud, and pinpoint where it is.</div>
           ) : (
             <div className="grid" style={{ gridTemplateColumns: "1fr 1.4fr", gap: 18 }}>
               <div className="grid" style={{ gap: 10, alignContent: "start" }}>
-                <div className="small dim">{mesh.nodes} nodes, one every {mesh.spacing_m} m, covering {(mesh.coverage_m / 1000).toFixed(1)} km around the centre.</div>
+                <div className="small dim">{mesh.nodes} sensors covering {(mesh.coverage_m / 1000).toFixed(1)} km around the centre{mesh.layout_source === "openstreetmap" ? ", placed on real map features" : ""}:</div>
+                <PlacementLine mesh={mesh} />
                 <MeshCounts mesh={mesh} />
+                {mesh.fire_estimate && <EstimateLine est={mesh.fire_estimate} />}
                 {mesh.ground_fire
                   ? <div className="small" style={{ color: "var(--critical-hot)", fontWeight: 700 }}>Fire confirmed on the ground by {mesh.counts.fire} sensor{mesh.counts.fire > 1 ? "s" : ""}.</div>
                   : st?.nearest_fire_km !== null && st?.nearest_fire_km !== undefined && st.nearest_fire_km < 5

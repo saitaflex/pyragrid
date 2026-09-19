@@ -31,6 +31,9 @@ SYSTEM_PROMPT = (
     "3. Base every suggestion only on the context. Each suggestion must cite one or more "
     "evidence keys, copied exactly from EVIDENCE_KEYS.\n"
     "4. Be concrete and short. No speculation about how the fire will spread.\n"
+    "5. If ground_sensors is present, use it: the combined fire estimate is the most precise "
+    "position the company has, heat at a building means people may be there, and silent "
+    "sensors mean an area is no longer monitored.\n"
     'Return only JSON: {"suggestions":[{"title": string (max 120 chars), "detail": string '
     '(max 600 chars), "audience": "operator"|"site_team"|"fire_service_liaison", "priority": '
     '1|2|3, "evidence": [string]}]}'
@@ -49,7 +52,16 @@ def matched_rule_ids(status: SiteStatus, site: Site, rules) -> list[str]:
     return rule_ids
 
 
-def evidence_keys(site: Site, status: SiteStatus, rule_ids: list[str]) -> list[str]:
+def _hot(ground) -> list:
+    return [n for n in ground[1] if n.state in ("warm", "fire")] if ground else []
+
+
+def _dead(ground) -> list:
+    return [n for n in ground[1] if n.state == "offline"] if ground else []
+
+
+def evidence_keys(site: Site, status: SiteStatus, rule_ids: list[str],
+                  ground=None) -> list[str]:
     keys = [f"factor:{n}" for n in
             ("proximity", "wind_alignment", "weather", "fuel", "vulnerability")]
     keys += [f"route:{r.name}" for r in status.access_routes]
@@ -60,13 +72,36 @@ def evidence_keys(site: Site, status: SiteStatus, rule_ids: list[str]) -> list[s
         keys.append("weather:wind")
     if status.triggering_detection_id:
         keys.append(f"detection:{status.triggering_detection_id}")
+    if ground:
+        mesh = ground[0]
+        keys.append("sensors:mesh")
+        if mesh.fire_estimate:
+            keys.append("sensors:fire_estimate")
+        keys += [f"sensor:{n.label}" for n in _hot(ground) + _dead(ground)]
     return sorted(set(keys))
 
 
-def build_context(site: Site, status: SiteStatus, headline: str, rules) -> dict:
+def build_context(site: Site, status: SiteStatus, headline: str, rules, ground=None) -> dict:
     actions, rule_ids = match_actions(rules, status.level, site.type, status.criticality,
                                       status.fire_moving_toward_site)
+    sensors = None
+    if ground:
+        mesh = ground[0]
+        est = mesh.fire_estimate
+        sensors = {
+            "counts": mesh.counts,
+            "fire_estimate": None if not est else {
+                "distance_m": est.distance_m, "compass": compass(est.bearing_deg),
+                "uncertainty_m": est.radius_m, "sensors": est.sensors,
+                "confidence": est.confidence},
+            "hot_sensors": [{"sensor": n.label, "place": n.place, "state": n.state,
+                             "temp_c": n.temp_c, "distance_m": n.dist_m,
+                             "compass": compass(n.bearing_deg)} for n in _hot(ground)],
+            "offline_sensors": [{"sensor": n.label, "place": n.place,
+                                 "compass": compass(n.bearing_deg)} for n in _dead(ground)],
+        }
     return {
+        "ground_sensors": sensors,
         "site_name": site.name, "type": site.type, "criticality": site.criticality,
         "personnel_on_site": site.personnel_on_site, "level": status.level,
         "score": status.score,
@@ -119,7 +154,8 @@ def validate(raw: list[dict], allowed_keys: list[str]) -> tuple[list[AdvisorSugg
     return valid[:config.MAX_SUGGESTIONS], rejected
 
 
-def template_engine(site: Site, status: SiteStatus, rule_ids: list[str]) -> list[dict]:
+def template_engine(site: Site, status: SiteStatus, rule_ids: list[str],
+                    ground=None) -> list[dict]:
     routes = {r.name: r.status for r in status.access_routes}
     exposed = [n for n, st in routes.items() if st == "potentially_exposed"]
     available = [n for n, st in routes.items() if st == "available"]
@@ -158,6 +194,36 @@ def template_engine(site: Site, status: SiteStatus, rule_ids: list[str]) -> list
                               "(hazards, water points, access) with the fire service liaison.",
                     "audience": "fire_service_liaison", "priority": 2,
                     "evidence": ["asset:type"]})
+    est = ground[0].fire_estimate if ground else None
+    if est:  # T8: combined sensor position is the most precise location the company has
+        out.append({"title": f"Ground sensors place the fire {est.distance_m} m "
+                             f"{compass(est.bearing_deg)} of the site: share it with the fire "
+                             "service liaison",
+                    "detail": f"{est.sensors} sensor(s) combined, {est.confidence} confidence, "
+                              f"± {est.radius_m} m. Hottest: {est.hottest}. Share this position "
+                              "with the fire service liaison.",
+                    "audience": "fire_service_liaison", "priority": 1,
+                    "evidence": ["sensors:fire_estimate"]})
+    homes = [n for n in _hot(ground) if n.kind == "structure"]
+    if homes:  # T9
+        n = homes[0]
+        out.append({"title": f"Heat at a {n.place.lower()} near the site ({n.label}): check "
+                             "whether anyone is there",
+                    "detail": f"Sensor {n.label} at a {n.place.lower()} {n.dist_m} m "
+                              f"{compass(n.bearing_deg)} reads {n.temp_c}°C. Ask the site "
+                              "manager whether employees or contractors are at that building "
+                              "and pass the location to the fire service liaison.",
+                    "audience": "operator", "priority": 1,
+                    "evidence": [f"sensor:{n.label}"]})
+    dead = _dead(ground)
+    if dead:  # T10
+        out.append({"title": f"{len(dead)} sensor(s) stopped reporting: treat those areas as "
+                             "unmonitored",
+                    "detail": "Silent sensors: " + ", ".join(
+                        f"{n.label} ({n.place}, {compass(n.bearing_deg)})" for n in dead[:6])
+                              + ". Do not assume those areas are safe.",
+                    "audience": "operator", "priority": 2,
+                    "evidence": [f"sensor:{n.label}" for n in dead[:6]]})
     if status.factor_status.weather in ("assumed", "unknown"):  # T6
         out.append({"title": f"Weather for this site is {status.factor_status.weather}: verify "
                              "local wind before acting",
@@ -172,10 +238,11 @@ def template_engine(site: Site, status: SiteStatus, rule_ids: list[str]) -> list
 
 
 def generate(site: Site, status: SiteStatus, headline: str, rules, incident_id: str,
-             at: str) -> AdvisorResponse:
+             at: str, ground=None) -> AdvisorResponse:
+    """`ground` = (SensorMesh, [SensorNode]) when the site has sensors installed."""
     rule_ids = matched_rule_ids(status, site, rules)
-    keys = evidence_keys(site, status, rule_ids)
-    context = build_context(site, status, headline, rules)
+    keys = evidence_keys(site, status, rule_ids, ground)
+    context = build_context(site, status, headline, rules, ground)
     user_message = f"EVIDENCE_KEYS: {json.dumps(keys)}\nCONTEXT: {json.dumps(context)}"
 
     attempts = []
@@ -205,7 +272,7 @@ def generate(site: Site, status: SiteStatus, headline: str, rules, incident_id: 
 
     if not suggestions:
         generated_by, model = "template", None
-        suggestions, rejected = validate(template_engine(site, status, rule_ids), keys)
+        suggestions, rejected = validate(template_engine(site, status, rule_ids, ground), keys)
 
     return AdvisorResponse(
         incident_id=incident_id, at=at, generated_by=generated_by, model=model,

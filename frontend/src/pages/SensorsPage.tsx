@@ -8,7 +8,7 @@ import { useAsync } from "../hooks/useAsync";
 import { TimeSlider } from "../components/TimeSlider";
 import { SiteMap } from "../components/SiteMap";
 import { StatTile } from "../components/StatTile";
-import { MeshCounts, SensorEventList, SensorLegend } from "../components/Sensors";
+import { EstimateLine, MeshCounts, PlacementLine, SensorEventList, SensorLegend } from "../components/Sensors";
 
 export function SensorsPage() {
   const { step } = useTime();
@@ -30,13 +30,14 @@ export function SensorsPage() {
   const focused = data?.meshes.find((m) => m.site_id === focus);
   const nodes = focus ? (data?.nodes ?? []).filter((n) => n.site_id === focus) : data?.nodes ?? [];
   const events = focus ? (data?.events ?? []).filter((e) => e.site_id === focus) : data?.events ?? [];
+  const estimates = (data?.meshes ?? []).filter((m) => m.fire_estimate && (!focus || m.site_id === focus)).map((m) => m.fire_estimate!);
 
   return (
     <div className="page"><div className="container grid" style={{ gap: 18 }}>
       <div className="between wrap">
         <div>
           <div className="eyebrow">Ground sensors · optional</div>
-          <h1 className="display" style={{ fontSize: "clamp(28px,3.6vw,42px)" }}>Hexagonal sensor mesh</h1>
+          <h1 className="display" style={{ fontSize: "clamp(28px,3.6vw,42px)" }}>Sensors on the ground</h1>
         </div>
         <SensorLegend />
       </div>
@@ -53,10 +54,10 @@ export function SensorsPage() {
 
       <div className="grid" style={{ gridTemplateColumns: "1.5fr 1fr", gap: 18, alignItems: "start" }}>
         <div className="grid" style={{ gap: 10 }}>
-          <SiteMap key={focus ?? "all"} sites={sit?.sites ?? []} detections={dets ?? []} sensors={nodes}
-            center={focused ? [focused.lon, focused.lat] : undefined} zoom={focused ? 12.2 : undefined}
+          <SiteMap key={focus ?? "all"} sites={sit?.sites ?? []} detections={dets ?? []} sensors={nodes} estimates={estimates}
+            center={focused ? [focused.lon, focused.lat] : undefined} zoom={focused ? 13 : undefined}
             onSelect={(id) => setFocus(data?.meshes.some((m) => m.site_id === id) ? id : focus)} height={520} />
-          <div className="small mute">Click a hexagon for its reading. Click a site to zoom into its mesh. Orange dots are satellite detections.</div>
+          <div className="small mute">Click a sensor for its reading and where it is mounted. Click a site to zoom in. Orange dots are satellite detections; the red dashed circle is where the sensors put the fire.</div>
         </div>
         <div className="card" style={{ maxHeight: 560, overflow: "auto" }}>
           <div className="between" style={{ marginBottom: 8 }}>
@@ -69,18 +70,18 @@ export function SensorsPage() {
 
       <div className="card" style={{ padding: 0, overflow: "hidden" }}>
         <table>
-          <thead><tr><th>Site</th><th>Mesh</th><th>Status now</th><th>Ground fire</th><th></th></tr></thead>
+          <thead><tr><th>Site</th><th>Where the sensors are</th><th>Status now</th><th>Ground fire</th><th></th></tr></thead>
           <tbody>
             {data?.meshes.map((m) => (
               <tr key={m.site_id} style={{ cursor: "pointer", background: m.site_id === focus ? "var(--panel-2)" : undefined }} onClick={() => setFocus(m.site_id)}>
                 <td>{m.site_name}<div className="small mute mono">{m.site_id}</div></td>
-                <td className="small dim">{m.nodes} nodes · every {m.spacing_m} m · {(m.coverage_m / 1000).toFixed(1)} km radius</td>
+                <td className="small"><div className="dim" style={{ marginBottom: 4 }}>{m.nodes} sensors within {(m.coverage_m / 1000).toFixed(1)} km{m.layout_source === "openstreetmap" ? " · placed on OpenStreetMap features" : " · even grid (no map features)"}</div><PlacementLine mesh={m} /></td>
                 <td><MeshCounts mesh={m} /></td>
-                <td>{m.ground_fire ? <span className="chip" style={{ borderColor: "var(--critical-hot)", color: "var(--critical-hot)" }}>confirmed on the ground</span> : <span className="dim small">no</span>}</td>
+                <td style={{ maxWidth: 320 }}>{m.fire_estimate ? <EstimateLine est={m.fire_estimate} /> : <span className="dim small">no heat sensed</span>}</td>
                 <td onClick={(e) => e.stopPropagation()}>{staff && <Link className="link small" to={`/sites/${m.site_id}`}>Site →</Link>}</td>
               </tr>
             ))}
-            {data && data.meshes.length === 0 && <tr><td colSpan={5} className="dim small" style={{ padding: 24, textAlign: "center" }}>No sensor mesh installed yet. Admins can install one from a site page.</td></tr>}
+            {data && data.meshes.length === 0 && <tr><td colSpan={5} className="dim small" style={{ padding: 24, textAlign: "center" }}>No sensors installed yet. Admins can install them from a site page.</td></tr>}
           </tbody>
         </table>
       </div>
@@ -89,10 +90,10 @@ export function SensorsPage() {
         <div className="eyebrow">How the mesh works</div>
         <div className="grid" style={{ gridTemplateColumns: "repeat(4, 1fr)", gap: 16 }}>
           {[
-            ["1 · Layout", "Nodes are placed on a hexagonal grid: 3 rings, 37 nodes, covering the site plus a buffer (at least 1 km). Every node has 6 equidistant neighbours, so one lost node leaves no blind corridor."],
+            ["1 · Placement", "Each sensor sits on a real place from OpenStreetMap: on the site fence, at nearby houses, cabins and farm buildings, and along forest, scrub and grassland edges where fire arrives. Open-ground points fill any gaps, covering the site plus at least 1 km around it."],
             ["2 · Sensing", "Each node reports temperature, battery and a tilt switch. Warm at 45°C, Fire at 65°C. Silence means it died (burned or out of battery); a tilt alarm means it was moved or knocked over."],
             ["3 · Transport", "Low-power radio (e.g. LoRaWAN) to a gateway on site, then to the Engine's ingest API. In this demo the readings are simulated from the same satellite detections the engine scores."],
-            ["4 · Use", "Sensors confirm or rule out satellite hotspots, see fire at night or under cloud, and show which side of the site is burning. Fire service, civil protection and NGOs can see the mesh through their shared view."],
+            ["4 · Combined position", "Readings of all warm and fire sensors are combined (heat-weighted) into one estimated fire position with an uncertainty circle: more hot sensors, higher confidence. It confirms or rules out satellite hotspots, works at night and under cloud, and is shared with fire service, civil protection and NGOs."],
           ].map(([t, d]) => <div key={t}><div style={{ fontWeight: 700, marginBottom: 6 }}>{t}</div><div className="small dim">{d}</div></div>)}
         </div>
       </div>

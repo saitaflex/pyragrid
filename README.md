@@ -14,11 +14,14 @@ Built by two people in one repo (Rural Valley hackathon).
 - Branches: `t1/<topic>` and `t2/<topic>` → PR into `main`. Commits start with `[T1]` or `[T2]`.
 
 ## Ground sensors, partner views and drills
-- **Hexagonal sensor mesh (optional per site).** 37 temperature nodes on a 3-ring hex grid
-  covering the site plus a ≥1 km buffer. Each node is OK / Warm (≥45°C) / Fire (≥65°C) /
-  Offline (burned or battery) / Dropped (tilt alarm). Shown on `/sensors`, the site page and
-  the shared view; admins install or remove a mesh from the site page. Demo readings are
-  simulated from the same detections the engine scores (`backend/app/sensors.py`).
+- **Ground sensors on real places (optional per site).** Each sensor is a dot on a real
+  OpenStreetMap feature within the site plus a >=1 km buffer: on the site fence, at nearby
+  houses / cabins / farm buildings, and along forest, scrub, grassland and farmland edges;
+  open-ground points fill the gaps (`backend/data/sensor_places.json`, refreshed with
+  `python scripts/fetch_sensor_places.py`). States: OK / Warm (>=45°C) / Fire (>=65°C) /
+  Offline (burned or battery) / Dropped (tilt alarm). Warm and fire sensors are combined
+  (heat-weighted) into one **estimated fire position** with an uncertainty circle, which the
+  AI Advisor also uses. Demo readings are simulated from the scored detections.
 - **Partner views.** `fire@demo.eu`, `gov@demo.eu`, `ngo@demo.eu` see `/situation` and
   `/sensors` only, filtered by a sharing policy (fire service: personnel, access routes,
   handoff pack; government: personnel; NGO: public picture only; nobody outside the company

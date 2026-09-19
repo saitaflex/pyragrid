@@ -6,7 +6,7 @@ import type { DrillStage, DrillView } from "../api/types";
 import { useAuth } from "../state/AuthContext";
 import { SiteMap, type MapMark } from "../components/SiteMap";
 import { LevelBadge } from "../components/LevelBadge";
-import { SensorLegend } from "../components/Sensors";
+import { EstimateLine, SensorLegend } from "../components/Sensors";
 import { SENSOR_COLOR } from "../api/levels";
 
 const STAGE_COLOR: Record<DrillStage["kind"], string> = {
@@ -170,8 +170,9 @@ export function DrillPage() {
           {participant && d.status === "ended" && !d.my_response?.responded_at && <div className="card small dim">This drill has ended. You did not respond in time.</div>}
         </div>
         <div className="grid" style={{ gap: 10 }}>
-          <SiteMap sites={[{ site_id: d.site_id, lat: d.lat, lon: d.lon, level: d.level }]} detections={[]} sensors={d.nodes} marks={marks}
+          <SiteMap sites={[{ site_id: d.site_id, lat: d.lat, lon: d.lon, level: d.level }]} detections={[]} sensors={d.nodes} estimates={d.fire_estimate ? [d.fire_estimate] : []} marks={marks}
             center={[d.lon, d.lat]} zoom={marks.length ? 10.8 : 12.4} height={440} />
+          {d.fire_estimate && <EstimateLine est={d.fire_estimate} />}
           <SensorLegend />
         </div>
       </div>

@@ -16,7 +16,7 @@ from app.geo import angdiff, compass, destination
 from app.models import (
     DrillNotification, DrillResponse, DrillStage, DrillView, SensorNode, Site,
 )
-from app.sensors import mesh_geometry
+from app.sensors import fire_estimate, layout
 from app.sop import match_actions
 
 AUTO_END_S = 30 * 60          # a drill closes itself 30 min after the last signal
@@ -63,16 +63,30 @@ def _secs(a: str, b: str) -> int:
     return int((fb - fa).total_seconds())
 
 
-def _pick(nodes: list[dict], bearing: float, ring: int) -> dict:
-    """Node on `ring` whose bearing from the site centre is closest to `bearing`."""
-    cand = [n for n in nodes if n["ring"] == ring] or nodes
-    return min(cand, key=lambda n: angdiff(n["bearing"], bearing))
+def _pick(nodes: list[dict], bearing: float, ring: int, avoid: tuple = ()) -> dict:
+    """Sensor in `ring` (0 fence, 1 inner buffer, 2 outer buffer) closest to `bearing`,
+    preferring sensors on real places over open-ground filler points."""
+    cand = [n for n in nodes if n["ring"] == ring and n["sensor_id"] not in avoid] \
+        or [n for n in nodes if n["sensor_id"] not in avoid]
+    return min(cand, key=lambda n: angdiff(n["bearing"], bearing) + (20 if n["kind"] == "grid" else 0))
+
+
+def _where(n: dict) -> str:
+    """'at the forest edge', 'at a house', 'on the site fence (SW)', 'on open ground'."""
+    place = n["place"]
+    if n["kind"] == "fence":
+        return "on the " + place[0].lower() + place[1:]
+    if n["kind"] == "grid":
+        return "on open ground"
+    if n["kind"] == "vegetation":
+        return "at the " + place.lower()
+    return "at a " + place.lower() + (f" ({n['name']})" if n.get("name") else "")
 
 
 def build_script(site: Site, scenario: str, pace_s: int, has_mesh: bool,
                  wind_from_deg: int) -> list[DrillStage]:
     """The case study: signals revealed at offset_s = k * pace_s."""
-    _, _, nodes = mesh_geometry(site)
+    _, _, nodes = layout(site)
     up = wind_from_deg                           # fire starts where the wind comes from
     side = compass(up)
     stages: list[DrillStage] = []
@@ -92,33 +106,34 @@ def build_script(site: Site, scenario: str, pace_s: int, has_mesh: bool,
         add("satellite", f"New hotspot 3.2 km {side}: fire is moving toward the site",
             "Second pass: FRP 71 MW. Spread direction matches the wind.", "HIGH", la, lo)
         if has_mesh:
-            n3, n2 = _pick(nodes, up, 3), _pick(nodes, up, 2)
-            add("sensor_warm", f"Sensor {n3['label']} (outer ring, {side}) warming: 52°C",
+            n3 = _pick(nodes, up, 2)
+            n2 = _pick(nodes, up, 1, avoid=(n3["sensor_id"],))
+            add("sensor_warm", f"Sensor {n3['label']} {_where(n3)} ({side}) warming: 52°C",
                 "Ambient is 29°C. Heat is reaching the sensor buffer zone.", "HIGH",
                 node=n3, temp=52.0)
             add("sensor_fire", f"Sensor {n3['label']} reports FIRE: 84°C",
                 "Ground confirmation of the satellite detections, about "
-                f"{site.radius_m + 1000} m from the site centre.", "CRITICAL", node=n3, temp=84.0)
+                f"{n3['dist_m']} m from the site centre.", "CRITICAL", node=n3, temp=84.0)
             add("sensor_offline", f"Sensor {n3['label']} offline",
                 "Stopped reporting right after the fire reading: likely destroyed.",
                 "CRITICAL", node=n3)
-            add("sensor_fire", f"Sensor {n2['label']} (inner ring) reports FIRE: 96°C",
-                "The fire front has reached the inner ring of the mesh.", "CRITICAL",
+            add("sensor_fire", f"Sensor {n2['label']} {_where(n2)}, closer in, reports FIRE: 96°C",
+                "The fire front is getting closer to the site.", "CRITICAL",
                 node=n2, temp=96.0)
         else:
             la, lo = destination(site.lat, site.lon, up, 1.1)
             add("satellite", f"Hotspot 1.1 km {side}", "FRP 112 MW. Fire is close to the "
                 "site boundary.", "CRITICAL", la, lo)
     elif scenario == "sensor_first":
-        n2 = _pick(nodes, up, 2)
-        n1 = _pick(nodes, up, 1)
-        add("sensor_warm", f"Sensor {n2['label']} warming: 49°C at 02:10",
+        n2 = _pick(nodes, up, 1)
+        n1 = _pick(nodes, up, 0, avoid=(n2["sensor_id"],))
+        add("sensor_warm", f"Sensor {n2['label']} {_where(n2)} warming: 49°C at 02:10",
             "Night-time ambient is 18°C. No satellite pass for the next 3 hours.",
             "ELEVATED", node=n2, temp=49.0)
         add("sensor_fire", f"Sensor {n2['label']} reports FIRE: 77°C",
             "No satellite confirmation possible (night, cloud cover).", "HIGH",
             node=n2, temp=77.0)
-        add("sensor_fire", f"Sensor {n1['label']} (inner ring) reports FIRE: 91°C",
+        add("sensor_fire", f"Sensor {n1['label']} {_where(n1)} reports FIRE: 91°C",
             "Two neighbouring sensors in fire: the fire is spreading toward the site.",
             "CRITICAL", node=n1, temp=91.0)
         add("sensor_offline", f"Sensor {n2['label']} offline",
@@ -126,7 +141,7 @@ def build_script(site: Site, scenario: str, pace_s: int, has_mesh: bool,
             "CRITICAL", node=n2)
     else:  # false_alarm
         n1 = _pick(nodes, (up + 90) % 360, 1)
-        add("sensor_warm", f"Sensor {n1['label']} warming: 48°C",
+        add("sensor_warm", f"Sensor {n1['label']} {_where(n1)} warming: 48°C",
             "Neighbouring sensors normal (27–29°C).", "ELEVATED", node=n1, temp=48.0)
         add("sensor_dropped", f"Sensor {n1['label']} tilt alarm",
             "Node moved or knocked over (maintenance vehicle? animal?).", "ELEVATED", node=n1)
@@ -176,7 +191,7 @@ def drill_nodes(site: Site, has_mesh: bool, revealed: list[DrillStage]) -> list[
     """The site's mesh with the drill's sensor signals applied (all others normal)."""
     if not has_mesh:
         return []
-    _, _, geo = mesh_geometry(site)
+    _, _, geo = layout(site)
     kind_state = {"sensor_warm": "warm", "sensor_fire": "fire", "sensor_offline": "offline",
                   "sensor_dropped": "dropped", "sensor_normal": "ok"}
     state: dict[str, tuple[str, float | None]] = {}
@@ -192,7 +207,9 @@ def drill_nodes(site: Site, has_mesh: bool, revealed: list[DrillStage]) -> list[
         note = {"ok": "Normal", "warm": "Above ambient", "fire": "Fire temperature",
                 "offline": "No longer reporting", "dropped": "Tilt alarm"}[s]
         out.append(SensorNode(sensor_id=n["sensor_id"], site_id=site.site_id, label=n["label"],
-                              ring=n["ring"], lat=n["lat"], lon=n["lon"], hex=n["hex"],
+                              ring=n["ring"], lat=n["lat"], lon=n["lon"], kind=n["kind"],
+                              place=n["place"], name=n["name"], dist_m=n["dist_m"],
+                              bearing_deg=int(n["bearing"]),
                               state=s, temp_c=t, battery_pct=90, last_seen=None,
                               state_since=None, note=f"DRILL: {note}"))
     return out
@@ -201,6 +218,7 @@ def drill_nodes(site: Site, has_mesh: bool, revealed: list[DrillStage]) -> list[
 def view(d: dict, responses: dict[str, dict], viewer_email: str, viewer_is_admin: bool,
          now: str) -> DrillView:
     stages = [DrillStage(**s) for s in d["stages"]]
+    site = Site(**d["site"])
     elapsed = max(0, _secs(d["created_at"], now))
     ended = d.get("ended_at") or (
         now if elapsed > stages[-1].offset_s + AUTO_END_S else None)
@@ -209,6 +227,7 @@ def view(d: dict, responses: dict[str, dict], viewer_email: str, viewer_is_admin
     upcoming = [s for s in stages if s.offset_s > elapsed]
     scored = {e: score_response(r, d["created_at"], d["expected"]) for e, r in responses.items()}
     mine = scored.get(viewer_email)
+    nodes = drill_nodes(site, d["has_mesh"], revealed)
     show_expected = viewer_is_admin or status == "ended" or (mine and mine.responded_at)
     visible = list(scored.values()) if viewer_is_admin else ([mine] if mine else [])
     visible.sort(key=lambda r: (-(r.score if r.score is not None else -1), r.email))
@@ -227,7 +246,8 @@ def view(d: dict, responses: dict[str, dict], viewer_email: str, viewer_is_admin
         options=d["options"],
         expected_actions=d["expected"] if show_expected else None,
         my_response=mine, responses=visible, notifications=notifications,
-        nodes=drill_nodes(Site(**d["site"]), d["has_mesh"], revealed), disclaimer=DISCLAIMER)
+        nodes=nodes, fire_estimate=fire_estimate(site, nodes) if nodes else None,
+        disclaimer=DISCLAIMER)
 
 
 def new_drill(drill_id: str, site: Site, scenario: str, pace_s: int, has_mesh: bool,

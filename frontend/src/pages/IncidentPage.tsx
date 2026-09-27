@@ -6,6 +6,7 @@ import { useAsync } from "../hooks/useAsync";
 import { FactorBars } from "../components/FactorBars";
 import { LevelBadge } from "../components/LevelBadge";
 import { AdvisorPanel } from "../components/AdvisorPanel";
+import { ForecastPanel } from "../components/ForecastPanel";
 import { Reveal } from "../components/Reveal";
 import { LEVEL_COLOR } from "../api/levels";
 
@@ -58,6 +59,7 @@ export function IncidentPage() {
         </Reveal>
       </div>
 
+      {inc && <Reveal><ForecastPanel siteId={inc.site_id} step={step} /></Reveal>}
       {inc && <Reveal><AdvisorPanel incidentId={inc.incident_id} siteId={inc.site_id} atStep={step} /></Reveal>}
     </div></div>
   );

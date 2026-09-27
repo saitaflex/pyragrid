@@ -333,3 +333,23 @@ export interface SimAdvice {
   rejected_by_guardrails: number; fallback_reason: string | null; protocol_actions: string[];
   access_routes: Record<string, RouteStatus>; disclaimer: string;
 }
+
+/** Physics-based fire spread estimate (Rothermel). Not a trained prediction: `assumptions`
+ *  lists every simplification and must be shown wherever this is displayed. */
+export interface FrontPosition {
+  hours_ahead: number; lat: number; lon: number; travel_km: number; reaches_site: boolean;
+}
+export interface SpreadForecast {
+  site_id: string; at: string;
+  fire_lat: number; fire_lon: number;
+  distance_km: number; bearing_from_fire: number;
+  ros_head_m_h: number; ros_toward_site_m_h: number;
+  hours_to_arrival: number | null;
+  arrival_confidence: string;
+  fuel_model: string;
+  front_positions: FrontPosition[];
+  terms: Record<string, number>;
+  assumptions: string[];
+  method: string;
+  disclaimer: string;
+}

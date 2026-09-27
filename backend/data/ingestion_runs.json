@@ -1,11 +1,11 @@
 [
  {
-  "run_id": "run-firms-2026-09-27T09:41:42Z",
+  "run_id": "run-firms-2026-09-27T10:07:46Z",
   "source": "firms_sp",
-  "started_at": "2026-09-27T09:41:42Z",
-  "completed_at": "2026-09-27T09:42:38Z",
-  "records_received": 17579,
-  "records_inserted": 17579,
+  "started_at": "2026-09-27T10:07:46Z",
+  "completed_at": "2026-09-27T10:08:49Z",
+  "records_received": 17937,
+  "records_inserted": 17937,
   "records_rejected": 0,
   "error_message": null
  }

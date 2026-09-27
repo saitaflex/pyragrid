@@ -19,3 +19,11 @@ ES-OU-017,Substation Montederramo 05,substation,42.280,-7.500,150,6100000,medium
 ES-OU-018,Solar Xinzo 02,solar_farm,42.060,-7.720,800,15300000,low,8,45,4
 ES-OU-019,Forest Block Oimbra D,forest_block,41.900,-7.470,2000,3300000,high,4,180,3
 ES-OU-020,San Xoan de Rio Test Plot,test_plot,42.366,-7.286,80,25000,medium,1,90,1
+TN-JN-001,Cork Oak Block Ghardimaou,forest_block,36.585,8.950,1800,2100000,very_high,3,90,3
+TN-ZG-002,Solar Zaghouan 01,solar_farm,36.565,10.300,550,6800000,high,5,270,4
+TN-ZG-003,Substation Djebibina,substation,36.430,10.050,220,4900000,medium,2,180,5
+TN-SL-004,Forest Block Gaafour,forest_block,36.650,9.290,1600,1700000,high,2,45,3
+TN-BJ-005,Solar Testour 02,solar_farm,36.885,9.300,500,5200000,high,4,135,4
+TN-SL-006,Telecom Tower Bou Arada,telecom_tower,36.700,9.990,120,900000,medium,1,0,4
+TN-BJ-007,Olive Estate Oued Zarga,forest_block,36.785,9.390,1300,2600000,high,6,225,3
+TN-SL-008,Siliana Test Plot,test_plot,36.430,9.960,90,18000,medium,1,90,1

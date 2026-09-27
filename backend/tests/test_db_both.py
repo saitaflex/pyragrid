@@ -8,6 +8,7 @@ import pytest
 
 from app.db import Database
 from app.defaults import DEMO_USERS, default_rules
+from app.importer import seed_sites
 
 
 def _make(tmp_path, kind):
@@ -26,7 +27,7 @@ def test_db_contract(tmp_path, kind):
     db.seed_if_empty()
     db.seed_if_empty()
     assert db.q("select count(*) as n from users")[0]["n"] == len(DEMO_USERS)
-    assert len(db.list_assets("demo")) == 20
+    assert len(db.list_assets("demo")) == len(seed_sites())
     assert len(db.list_assets("othercorp")) == 1  # tenant filter
 
     # rule upsert

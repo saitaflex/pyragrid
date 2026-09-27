@@ -18,7 +18,7 @@ from pathlib import Path
 import httpx
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
-from app.config import BBOX  # noqa: E402
+from app.config import REGIONS  # noqa: E402
 
 DATA = Path(__file__).resolve().parent.parent / "data"
 Z = "%Y-%m-%dT%H:%M:%SZ"
@@ -28,8 +28,8 @@ NRT = ["VIIRS_SNPP_NRT", "VIIRS_NOAA20_NRT"]
 DATES = [date(2025, 8, 8) + timedelta(days=i) for i in range(18)]  # 08-08..08-25
 
 
-def _area(map_key: str, source: str, day: date, client: httpx.Client):
-    bbox = f"{BBOX['west']},{BBOX['south']},{BBOX['east']},{BBOX['north']}"
+def _area(map_key: str, source: str, day: date, client: httpx.Client, box: dict):
+    bbox = f"{box['west']},{box['south']},{box['east']},{box['north']}"
     url = f"{BASE}/{map_key}/{source}/{bbox}/1/{day.isoformat()}"
     r = client.get(url, timeout=60)
     text = r.text
@@ -40,30 +40,33 @@ def _area(map_key: str, source: str, day: date, client: httpx.Client):
 
 
 def _collect(map_key: str, sources: list[str], received: str, client: httpx.Client):
+    """Every region in config.REGIONS, so one detections.csv covers both operating areas."""
     rows, rejected = [], 0
-    for source in sources:
-        src_tag = "firms_nrt" if source.endswith("NRT") else "firms_sp"
-        for day in DATES:
-            recs = _area(map_key, source, day, client)
-            if recs is None:
-                rejected += 1
-                time.sleep(1)
-                continue
-            for rec in recs:
-                hhmm = str(rec.get("acq_time", "0")).zfill(4)
-                observed = f"{rec['acq_date']}T{hhmm[:2]}:{hhmm[2:]}:00Z"
-                rows.append({
-                    "source": src_tag,
-                    "external_id": "",
-                    "lat": round(float(rec["latitude"]), 5),
-                    "lon": round(float(rec["longitude"]), 5),
-                    "observed_at": observed,
-                    "received_at": received,
-                    "satellite": rec.get("satellite", ""),
-                    "confidence": "h" if str(rec.get("confidence", "n")).lower().startswith("h") else "n",
-                    "intensity_frp": round(float(rec.get("frp", 0.0)), 1),
-                })
-            time.sleep(1)
+    for region, box in REGIONS.items():
+        print(f"region {region}")
+        for source in sources:
+            src_tag = "firms_nrt" if source.endswith("NRT") else "firms_sp"
+            for day in DATES:
+                recs = _area(map_key, source, day, client, box)
+                if recs is None:
+                    rejected += 1
+                    time.sleep(0.5)
+                    continue
+                for rec in recs:
+                    hhmm = str(rec.get("acq_time", "0")).zfill(4)
+                    observed = f"{rec['acq_date']}T{hhmm[:2]}:{hhmm[2:]}:00Z"
+                    rows.append({
+                        "source": src_tag,
+                        "external_id": "",
+                        "lat": round(float(rec["latitude"]), 5),
+                        "lon": round(float(rec["longitude"]), 5),
+                        "observed_at": observed,
+                        "received_at": received,
+                        "satellite": rec.get("satellite", ""),
+                        "confidence": "h" if str(rec.get("confidence", "n")).lower().startswith("h") else "n",
+                        "intensity_frp": round(float(rec.get("frp", 0.0)), 1),
+                    })
+                time.sleep(0.5)
     return rows, rejected
 
 

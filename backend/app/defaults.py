@@ -20,7 +20,8 @@ DEMO_USERS = [
 
 # Sites with the optional ground-sensor mesh installed in the demo (seeded once).
 DEMO_SENSOR_SITES = ["ES-OU-001", "ES-OU-003", "ES-OU-005", "ES-OU-008", "ES-OU-009",
-                     "ES-OU-013", "ES-OU-015", "ES-OU-016", "ES-OU-020"]
+                     "ES-OU-013", "ES-OU-015", "ES-OU-016", "ES-OU-020",
+                     "TN-JN-001", "TN-ZG-002"]
 
 
 def default_rules() -> list[SopRule]:

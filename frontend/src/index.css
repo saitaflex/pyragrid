@@ -116,23 +116,62 @@ h3, h4 { font-family: var(--body); font-weight: 700; letter-spacing: -0.01em; li
 .card.hover:hover { transform: translateY(-4px); border-color: var(--border-2); box-shadow: var(--shadow); }
 
 /* ---------- buttons ---------- */
+/* Controls behave like equipment, not marketing: they firm up and warm on hover and
+   visibly depress when pressed. Nothing floats — rows in an ops table must stay still. */
 .btn {
+  position: relative;
   display: inline-flex; align-items: center; gap: 8px;
   padding: 11px 18px; border-radius: 999px; border: 1px solid var(--border-2);
   background: var(--panel-2); color: var(--text); font-weight: 600; font-size: 14px;
-  transition: transform 0.15s, background 0.2s, border-color 0.2s, opacity .2s;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  transition: background .18s, border-color .18s, color .18s, box-shadow .18s,
+              transform .08s cubic-bezier(.2,.7,.2,1), opacity .2s;
 }
-.btn:hover { transform: translateY(-2px); background: rgba(255,255,255,0.1); }
-.btn:active { transform: translateY(0); }
-.btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+.btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: color-mix(in srgb, var(--ember) 45%, var(--border-2));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12);
+}
+.btn:active {
+  transform: scale(0.975);
+  background: rgba(255, 255, 255, 0.055);
+  box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.5);
+}
+.btn:disabled { opacity: 0.45; cursor: not-allowed; transform: none; box-shadow: none; }
+.btn:disabled:hover { background: var(--panel-2); border-color: var(--border-2); }
 .btn.primary {
   background: linear-gradient(120deg, var(--ember), var(--ember-2));
   border-color: transparent; color: #140b06;
-  box-shadow: 0 8px 30px -8px var(--ember-glow);
+  box-shadow: 0 8px 30px -8px var(--ember-glow), inset 0 1px 0 rgba(255, 255, 255, 0.35);
 }
-.btn.primary:hover { box-shadow: 0 12px 40px -6px var(--ember-glow); }
-.btn.ghost { background: transparent; }
+.btn.primary:hover {
+  box-shadow: 0 14px 44px -6px var(--ember-glow), inset 0 1px 0 rgba(255, 255, 255, 0.45);
+  filter: saturate(1.1) brightness(1.04);
+}
+.btn.primary:active { box-shadow: inset 0 2px 8px rgba(84, 25, 0, 0.55); filter: none; }
+.btn.ghost { background: transparent; box-shadow: none; }
+.btn.ghost:hover { background: var(--panel); }
 .btn.sm { padding: 7px 12px; font-size: 12.5px; }
+
+/* Danger-adjacent actions (reject, cancel a drill) warm toward the critical colour instead
+   of ember, so an operator never confuses "run it" with "call it off". */
+.btn.danger:hover {
+  border-color: color-mix(in srgb, var(--critical-hot) 55%, transparent);
+  color: color-mix(in srgb, var(--critical-hot) 80%, var(--text));
+}
+
+/* The advisor call can take up to 15 s — the one long wait in the product. An ember sweep
+   crosses the button for its whole duration, the way a satellite pass crosses ground. */
+.btn.working { color: var(--text); cursor: progress; overflow: hidden; }
+.btn.working::after {
+  content: "";
+  position: absolute; inset: 0;
+  background: linear-gradient(90deg, transparent 0%,
+    color-mix(in srgb, var(--ember) 42%, transparent) 50%, transparent 100%);
+  background-size: 220% 100%;
+  animation: shimmer 1.4s linear infinite;
+  pointer-events: none;
+}
 
 input, select, textarea {
   font-family: inherit; font-size: 14px; color: var(--text);
@@ -160,16 +199,24 @@ label { font-size: 12.5px; color: var(--text-dim); display: block; margin-bottom
 }
 .badge .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--lv, #888); box-shadow: 0 0 10px var(--lv); }
 .badge.CRITICAL .dot { animation: pulse 1.3s ease-in-out infinite; }
+.badge.HIGH, .badge.CRITICAL { box-shadow: 0 0 22px -6px color-mix(in srgb, var(--lv) 60%, transparent); }
 
 .chip {
   font-family: var(--mono); font-size: 10.5px; letter-spacing: 0.05em; text-transform: uppercase;
   padding: 3px 8px; border-radius: 6px; border: 1px solid var(--border);
   color: var(--text-dim); background: var(--panel);
 }
-.chip.observed { color: #7fd18a; border-color: rgba(127,209,138,0.3); }
-.chip.customer_provided { color: #7fb2ff; border-color: rgba(127,178,255,0.3); }
-.chip.assumed { color: var(--elevated); border-color: rgba(249,168,37,0.3); }
-.chip.unknown { color: var(--text-mute); border-color: var(--border); }
+.chip {
+  border-left-width: 2px;
+  transition: background .18s, border-color .18s, color .18s;
+}
+.chip.observed { color: #7fd18a; border-color: rgba(127,209,138,0.3); border-left-color: #7fd18a; }
+.chip.customer_provided { color: #7fb2ff; border-color: rgba(127,178,255,0.3); border-left-color: #7fb2ff; }
+.chip.assumed { color: var(--elevated); border-color: rgba(249,168,37,0.3); border-left-color: var(--elevated); }
+.chip.unknown { color: var(--text-mute); border-color: var(--border); border-left-color: var(--text-mute); }
+/* Evidence chips are the link between a suggestion and the data behind it, so they respond
+   to the pointer: the text brightens to full strength when you single one out. */
+.chip:hover { background: var(--panel-2); color: var(--text); }
 
 /* ---------- meters / bars ---------- */
 .meter { height: 8px; border-radius: 999px; background: var(--bg-2); overflow: hidden; }
@@ -198,6 +245,17 @@ label { font-size: 12.5px; color: var(--text-dim); display: block; margin-bottom
 table { width: 100%; border-collapse: collapse; }
 th { text-align: left; font-family: var(--mono); font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-mute); padding: 10px 12px; border-bottom: 1px solid var(--border); }
 td { padding: 12px; border-bottom: 1px solid var(--border); font-size: 13.5px; }
+/* A row that opens a site or incident grows an ember edge, so "this leads somewhere" is
+   visible without hunting for an underlined link. */
+tr.click { cursor: pointer; }
+tr.click td:first-child { position: relative; }
+tr.click td:first-child::before {
+  content: "";
+  position: absolute; left: 0; top: 0; bottom: 0; width: 0;
+  background: var(--ember);
+  transition: width .16s cubic-bezier(.2,.7,.2,1);
+}
+tr.click:hover td:first-child::before { width: 3px; }
 tr:hover td { background: var(--panel); }
 
 .maplibregl-map { border-radius: var(--radius); font-family: var(--body); }
@@ -324,3 +382,33 @@ tr:hover td { background: var(--panel); }
 /* the top bar gets crowded: the data-source tag gives way first */
 @media (max-width: 1500px) { .tag-src { display: none !important; } }
 .nav-link { white-space: nowrap; }
+
+/* ---------- keyboard and motion floor ---------- */
+/* Every control has a visible keyboard ring. An operator using this under pressure may never
+   touch the mouse, and a judge tabbing through it should never lose their place. */
+:where(.btn, .link, .chip, .check-opt, tr.click, a, [tabindex]):focus-visible {
+  outline: 2px solid var(--ember);
+  outline-offset: 2px;
+  border-radius: var(--radius-sm);
+}
+.btn:focus-visible { outline-offset: 3px; border-radius: 999px; }
+
+/* An action that lands confirms itself once, then settles. Used after approving or rejecting
+   a suggestion, so the operator sees which one they just decided. */
+.confirmed { animation: confirm-flash .9s cubic-bezier(.2,.7,.2,1) 1; }
+@keyframes confirm-flash {
+  0% { background: color-mix(in srgb, var(--ember) 26%, transparent); }
+  100% { background: transparent; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+  /* Keep the meaning, drop the movement: a critical dot stays solid and fully opaque. */
+  .badge.CRITICAL .dot, .drill-pulse { animation: none; opacity: 1; }
+  .btn.working::after { animation: none; background: color-mix(in srgb, var(--ember) 22%, transparent); }
+}

@@ -10,6 +10,12 @@ FIRE_RADIUS_KM = 25.0
 CONTACT_KM = 1.0
 ROUTE_EXPOSURE_KM = 10.0
 BBOX = {"west": -7.9, "south": 41.8, "east": -6.7, "north": 42.6}
+# Fetch regions for scripts/fetch_firms.py. BBOX stays the Galicia pilot area; Tunisia is the
+# second operating region, so the demo carries real detections from both.
+REGIONS = {
+    "galicia": BBOX,
+    "tunisia_nw": {"west": 8.2, "south": 36.2, "east": 11.4, "north": 37.5},
+}
 EARTH_RADIUS_KM = 6371.0088
 LEVELS = [(25, "NORMAL"), (50, "ELEVATED"), (75, "HIGH"), (100, "CRITICAL")]
 MAX_IMPORT_ROWS = 200    # keeps replay recompute well under Vercel limits (§5.9)

@@ -3,6 +3,7 @@ from app.models import (
     Alert, AuditEntry, Detection, Health, Incident, IngestionRun, OutboxEmail,
     Portfolio, ReplaySummary, Site, SiteStatus, SopRule, SourceStatus, TimelinePoint,
 )
+from app.importer import seed_sites
 from app.sop import RANK
 from tests.conftest import auth
 
@@ -14,7 +15,7 @@ def test_health(client):
 def test_portfolio_shape_and_sorting(client):
     r = client.get("/api/portfolio?at=2025-08-14T15:00:00Z", headers=auth(client))
     p = Portfolio.model_validate(r.json())
-    assert len(p.sites) == 20
+    assert len(p.sites) == len(seed_sites())   # every seeded site, both regions
     keys = [(-RANK[s.level], -s.score, s.site_id) for s in p.sites]
     assert keys == sorted(keys)
 

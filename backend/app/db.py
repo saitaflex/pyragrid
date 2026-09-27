@@ -105,6 +105,7 @@ class Database:
     # -- seed ------------------------------------------------------------
     def seed_if_empty(self) -> None:
         self._seed_additions()
+        self._backfill_sites()
         if self.q("select count(*) as n from assets")[0]["n"] > 0:
             return
         from app.defaults import default_rules, othercorp_site
@@ -120,6 +121,20 @@ class Database:
                 self.q("insert into sop_rules(customer_id,rule_id,data) values(?,?,?) "
                        "on conflict do nothing", (cid, r.rule_id, r.model_dump_json()))
 
+    def _backfill_sites(self) -> None:
+        """Sites added to the seed file after a database was first created — currently the
+        Tunisian region. Inserts only what is missing, so it is safe on every boot, and it
+        does nothing on a fresh database (seed_if_empty inserts those sites itself)."""
+        if self.get_meta("seed_sites_tn_v1"):
+            return
+        if self.q("select count(*) as n from assets")[0]["n"] == 0:
+            return                      # fresh database: leave it to seed_if_empty
+        from app.importer import seed_sites as _seed_sites
+        for site in _seed_sites():
+            self.q("insert into assets(customer_id,site_id,data) values(?,?,?) "
+                   "on conflict do nothing", ("demo", site.site_id, site.model_dump_json()))
+        self.set_meta("seed_sites_tn_v1", "done")
+
     def _seed_additions(self) -> None:
         """Idempotent: demo users added later (partners, extra staff) and the demo sensor
         meshes reach databases seeded by an earlier version."""
@@ -132,10 +147,12 @@ class Database:
             self.q("insert into users(email,name,customer_id,role,salt,hash) "
                    "values(?,?,?,?,?,?) on conflict do nothing",
                    (email, name, cid, role, salt, h))
-        if not self.get_meta("seed_sensors_v1"):
+        if not self.get_meta("seed_sensors_v2"):
+            # v2 adds the Tunisian meshes; add_install is idempotent, so databases seeded by
+            # v1 simply gain the new sites.
             for sid in DEMO_SENSOR_SITES:
                 self.add_install("demo", sid, "2025-07-01T00:00:00Z")
-            self.set_meta("seed_sensors_v1", "done")
+            self.set_meta("seed_sensors_v2", "done")
 
     # -- meta ------------------------------------------------------------
     def get_meta(self, k: str) -> str | None:

@@ -8,9 +8,9 @@ repo, not estimated. Reproduce with `scripts/eval_advisor.py` and the commands n
 
 | Thing | Number | How |
 |:--|--:|:--|
-| Detections in the shipped dataset | 17,579 | `data/meta.json`, source `firms_sp` |
+| Detections in the shipped dataset | 17,937 (17,579 Galicia + 358 Tunisia) | `data/meta.json`, source `firms_sp` |
 | Detection file load, all rows parsed | 102 ms | `FileDetectionsProvider().detections()` |
-| Replay compute, 20 sites × 144 steps | 2.24 s | `ReplayData("demo", sites)`, once per process |
+| Replay compute, 28 sites × 144 steps | 3.15 s | `ReplayData("demo", sites)`, once per process |
 | Cold API call (builds the replay cache) | 1,587 ms | `GET /api/portfolio` |
 | Warm `GET /api/portfolio` | 5 ms | best of 3 |
 | Warm `GET /api/alerts` | 10 ms | best of 3 |
@@ -76,6 +76,10 @@ presses the button — never on a timer, never per detection.
   measures when the region lit up, not a per-site prediction.
 - **The sensor mesh is simulated.** No hardware exists. Readings are derived from the same
   real detections plus a day/night ambient model. Nothing in the demo is a physical device.
+- **OSM coverage is thinner in rural Tunisia.** Four of the eight Tunisian sites returned
+  no buildings or vegetation from Overpass, so their sensors fall back to an even grid
+  instead of real mapped features. The two sites with meshes installed (Ghardimaou,
+  Zaghouan) do sit on real OSM features.
 - **Weather is not live in the demo.** The cache is empty, so scoring uses the documented
   assumed weather constants.
 - **FIRMS gives detections, not fire perimeters**, at roughly 375 m resolution with hours of

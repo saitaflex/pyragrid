@@ -55,5 +55,14 @@ Alternative: two projects from this repo, Engine (Root Directory = `backend`) an
 If the Engine is unreachable, the Console falls back to built-in demo data and shows an
 "Engine offline" banner.
 
+## Regions and data
+Real NASA FIRMS VIIRS detections for both operating regions, fetched by
+`backend/scripts/fetch_firms.py` from `config.REGIONS` (needs a free `FIRMS_MAP_KEY`):
+**Galicia, Spain** (20 sites, 17,579 detections) and **northwest Tunisia** (8 sites, 358
+detections) over 8–25 August 2025. Sites added after a database was first seeded are
+backfilled idempotently on boot, so an existing deployment picks them up on redeploy.
+See [`docs/RELIABILITY.md`](docs/RELIABILITY.md) for measured latencies, failure modes and
+limits, and [`docs/DEMO_SCRIPT.md`](docs/DEMO_SCRIPT.md) for the 90-second demo path.
+
 > Fire data is NASA FIRMS VIIRS **detections** (or synthetic fallback), not fire perimeters.
 > This is an MVP decision-support model, not a validated prediction model. Demo data is simulated.

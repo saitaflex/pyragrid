@@ -30,8 +30,8 @@ export function AdvisorPanel({ incidentId, siteId, atStep }: { incidentId: strin
           <div className="eyebrow">AI Advisor · suggestions need human approval</div>
           <div className="dim small" style={{ marginTop: 4 }}>Grounded suggestions for the company. Never firefighting tactics.</div>
         </div>
-        <button className="btn primary" onClick={generate} disabled={loading}>
-          {loading ? <><span className="spinner" /> Generating…</> : resp ? "Regenerate advice" : "Generate advice"}
+        <button className={`btn primary${loading ? " working" : ""}`} onClick={generate} disabled={loading}>
+          {loading ? <><span className="spinner" /> Reading the evidence…</> : resp ? "Regenerate advice" : "Generate advice"}
         </button>
       </div>
 
@@ -58,13 +58,13 @@ export function AdvisorPanel({ incidentId, siteId, atStep }: { incidentId: strin
                   <span className="chip">{AUDIENCE_LABEL[s.audience]}</span>
                 </div>
                 {s.decision ? (
-                  <span className={`chip ${s.decision === "approved" ? "observed" : "unknown"}`}>
+                  <span className={`chip confirmed ${s.decision === "approved" ? "observed" : "unknown"}`}>
                     {s.decision === "approved" ? "✓ Approved" : "✕ Rejected"} · {s.decided_by}
                   </span>
                 ) : (
                   <div className="row" style={{ gap: 8 }}>
                     <button className="btn sm" onClick={() => decide(s.suggestion_id, s.title, "approved")}>Approve</button>
-                    <button className="btn sm ghost" onClick={() => decide(s.suggestion_id, s.title, "rejected")}>Reject</button>
+                    <button className="btn sm ghost danger" onClick={() => decide(s.suggestion_id, s.title, "rejected")}>Reject</button>
                   </div>
                 )}
               </div>

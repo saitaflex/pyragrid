@@ -1,11 +1,11 @@
 [
  {
-  "run_id": "run-synthetic-0001",
-  "source": "synthetic_fallback",
-  "started_at": "2026-09-18T16:54:21Z",
-  "completed_at": "2026-09-18T16:54:21Z",
-  "records_received": 720,
-  "records_inserted": 718,
+  "run_id": "run-firms-2026-09-27T09:41:42Z",
+  "source": "firms_sp",
+  "started_at": "2026-09-27T09:41:42Z",
+  "completed_at": "2026-09-27T09:42:38Z",
+  "records_received": 17579,
+  "records_inserted": 17579,
   "records_rejected": 0,
   "error_message": null
  }

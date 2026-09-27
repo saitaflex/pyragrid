@@ -76,7 +76,33 @@ Anderson (1982)'s published rates **within 0.6%**, asserted in `backend/tests/te
 coefficient edit cannot drift silently. Our first version was 3–5× too fast because it treated
 live shrub fuel as bone-dry dead fuel; validating against published BEHAVE values caught it.
 
-**3. The LLM writes and prioritises the response.** Its job is language and judgement, not
+**3. Two LLM surfaces, both grounded the same way.**
+
+The **AI Advisor** (on every incident) writes and prioritises the operator's next actions.
+The **operations assistant** (the dock, bottom right of any page) answers whatever the operator
+asks — which site is worst, how long until the front arrives, which route is exposed, why a
+site scored as it did, how many people are on site.
+
+The assistant is a chat box in the interface only. Underneath it keeps the same contract, which
+is the interesting part: an open text field is normally where grounding is lost.
+
+- It cannot browse or recall. Every answer is built from a context assembled from the live
+  replay, and there is no memory beyond the turns the client sends back.
+- It must cite evidence keys from a closed whitelist. **Live testing caught the model citing
+  JSON paths (`selected_site.personnel_on_site`) instead of whitelist keys — validation
+  rejected those answers and the deterministic engine answered instead.** The prompt was then
+  fixed; the guardrail had already done its job.
+- It refuses what it cannot ground, including general knowledge, and says why.
+- The tactics guardrail applies unchanged: ask it how to put the fire out and it declines.
+- With no model configured, or on any rejection or rate-limit, `rule_answer()` answers the
+  common questions deterministically from the same context. You can see this happen: hammer it
+  and Groq returns 429, and the answers keep coming from the rules.
+
+Try it: *"How do I put the fire out?"* → declines. *"What is the capital of France?"* →
+declines. *"How long until the fire reaches this site?"* → 2.5 hours, citing
+`forecast:time_to_arrival`.
+
+**3b. The advisor in detail.** Its job is language and judgement, not
 detection. What makes it trustworthy:
 
 - **Closed-whitelist grounding.** It may cite only evidence keys we hand it. A key it invents

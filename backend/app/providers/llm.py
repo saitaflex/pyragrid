@@ -14,6 +14,7 @@ from app import config
 
 class LLMProvider:
     model: str | None = None
+    last_usage: dict | None = None   # token counts from the last call, for scripts/eval_advisor.py
 
     def suggest(self, system_prompt: str, user_message: str) -> list[dict]:
         raise NotImplementedError
@@ -48,7 +49,9 @@ class GroqProvider(LLMProvider):
             if r.status_code == 400 and "json_validate_failed" in r.text and attempt == 0:
                 continue
             r.raise_for_status()
-            return _parse(r.json()["choices"][0]["message"]["content"])
+            payload = r.json()
+            self.last_usage = payload.get("usage")
+            return _parse(payload["choices"][0]["message"]["content"])
         raise RuntimeError("unreachable")
 
 

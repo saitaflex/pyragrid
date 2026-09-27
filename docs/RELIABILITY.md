@@ -37,14 +37,23 @@ GROQ_API_KEY=... python scripts/eval_advisor.py --cases 10 --json eval.json
 
 | | template (no AI) | `llama3.2:1b` local, CPU | Groq `openai/gpt-oss-120b` |
 |:--|--:|--:|--:|
-| Usable answers | 6/6 | 1/6 | _pending a key_ |
-| Call failures | 0 | 2 (timeout) | _pending_ |
-| Evidence grounding | **100%** (73/73) | **72.8%** (59/81) | _pending_ |
-| Guardrail rejections | none | 7 hallucinated evidence keys, 5 non-objects, 1 bad priority, 1 missing fields | _pending_ |
-| Latency p50 / max | <1 ms | 9.87 s / 19.36 s | _pending_ |
-| Cost per call | €0 | €0 (own hardware) | _pending_ |
+| Usable answers | 6/6 | 1/6 | 8/8 |
+| Call failures | 0 | 2 (timeout) | 0 |
+| Evidence grounding | **100%** (73/73) | **72.8%** (59/81) | 100% post-validation (see note) |
+| Guardrail rejections | none | 7 hallucinated evidence keys, 5 non-objects, 1 bad priority, 1 missing fields | 2 in 11 calls |
+| Latency p50 / max | <1 ms | 9.87 s / 19.36 s | **1.04 s / 2.9 s** |
+| Cost per call | €0 | €0 (own hardware) | fractions of a cent |
 
-Measured on 6 CRITICAL incidents from the real replay. Two further local models were tried:
+The Groq column was measured against the **live production deployment** — 11 calls to
+`POST /api/advisor/incidents/TN-JN-001_20250824T0300`, the incident used in the demo script —
+so it includes real network latency, not just model time. 6 suggestions per call is typical.
+Because the production API only returns output that has already passed `validate()`, its 100%
+grounding is true by construction rather than a measurement of the raw model: the honest
+signal there is that **2 suggestions across 11 calls were rejected by the guardrails**, so even
+a 120B model's raw output is not always clean. The local column below measures raw output
+directly, which is why its grounding figure is the more informative one.
+
+The template and local-model columns were measured on 6 CRITICAL incidents from the real replay. Two further local models were tried:
 `qwen3.5:4b` exceeded **222 s** per call on this laptop's CPU and was abandoned, and a single
 timed `llama3.2:1b` call took 22.4 s. A 3,770-character prompt with 25 evidence keys is simply
 too much for a small model on a CPU.

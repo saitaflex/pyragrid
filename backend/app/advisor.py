@@ -13,9 +13,15 @@ from app.models import AdvisorResponse, AdvisorSuggestion, Site, SiteStatus
 from app.providers.llm import GroqProvider, OllamaProvider
 from app.sop import match_actions
 
+# Firefighting tactics the advisor must never emit. "fire line" is a tactic only when someone
+# is doing something to it: describing where the front is ("before the fire line reaches the
+# south fence") is legitimate situational language, and blocking that was silently suppressing
+# every forecast-based suggestion. The verb prefix keeps the tactical sense blocked.
 TACTICS = re.compile(
-    r"back[- ]?burn|backfire|contrafuego|firebreak|fire ?line|cortafuego|extinguish|"
-    r"suppress|attack the fire|water drop|drop water|approach the fire|fight the fire|tactic",
+    r"back[- ]?burn|backfire|contrafuego|firebreak|cortafuego|extinguish|"
+    r"suppress|attack the fire|water drop|drop water|approach the fire|fight the fire|tactic|"
+    r"(?:build|construct|cut|dig|establish|prepare|hold|anchor|widen)\w*\s+"
+    r"(?:a\s+|the\s+)?fire ?line",
     re.IGNORECASE,
 )
 
@@ -34,6 +40,9 @@ SYSTEM_PROMPT = (
     "spread_forecast states.\n"
     "5. If spread_forecast is present, use its hours_to_arrival to set urgency and to "
     "sequence the suggestions: what must happen before the front arrives, and in what order. "
+    "Any suggestion whose timing or urgency comes from the forecast must cite "
+    "forecast:time_to_arrival or forecast:spread_rate, so the operator can see what the "
+    "deadline rests on. "
     "Quote its numbers only; never estimate a spread rate or an arrival time yourself, and "
     "never contradict arrival_confidence. It is an estimate under assumptions, so do not "
     "present it as certain.\n"

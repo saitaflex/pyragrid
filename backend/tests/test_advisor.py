@@ -107,3 +107,32 @@ def test_decisions_first_wins_and_audited(client, monkeypatch):
     assert any(d["suggestion_id"] == sid for d in decisions)
     assert client.post("/api/advisor/suggestions/nope/decision",
                        json={"decision": "approved", "note": ""}, headers=h).status_code == 404
+
+
+def test_guardrail_blocks_tactics_but_allows_describing_the_front():
+    """The safety rule must catch firefighting instructions without catching situational
+    language. Blocking a bare "fire line" silently suppressed every forecast-based
+    suggestion, because describing where the front is reads as a tactic to a naive regex.
+    """
+    from app.advisor import TACTICS
+
+    allowed = [
+        "Complete protocol actions before the fire line reaches the south fence",
+        "The front will cross the fireline in under an hour",
+        "Estimated arrival 2.5 h at 427 m/h; finish shutdown before then",
+        "Share the estimated arrival time with the fire service liaison",
+    ]
+    blocked = [
+        "Prepare a firebreak along the south fence",
+        "Construct a fire line along the ridge",
+        "Cut fireline to the north",
+        "Hold the fire line at the road",
+        "Suppress the fire at the fence",
+        "Attack the fire from the west",
+        "Back-burn from the track",
+        "Drop water on the north flank",
+    ]
+    for text in allowed:
+        assert not TACTICS.search(text), f"false positive, this is description: {text!r}"
+    for text in blocked:
+        assert TACTICS.search(text), f"a firefighting tactic got through: {text!r}"

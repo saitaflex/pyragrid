@@ -75,8 +75,9 @@ a guardrail that visibly fires beats one you merely claim.
 
 ## 1:20 – 1:30 · Close on the validation (tab 5)
 
-> "Replayed against the real Galician season: ten of those sites were reached by fire. We
-> raised an alert on every one — zero missed — with a median of four days' warning."
+> "Replayed against the real season across both regions: eleven of the twenty-eight sites
+> were reached by fire. We raised an alert on every one — zero missed — with a median of four
+> days' warning."
 
 Stop talking. Do not offer a tour of the other twelve pages.
 

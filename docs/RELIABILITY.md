@@ -99,11 +99,13 @@ presses the button — never on a timer, never per detection.
 - **The risk score is a transparent weighted heuristic, not a trained or validated model.**
   Proximity, wind alignment, weather, fuel and asset vulnerability, hand-weighted, version
   `rules-1.0`. It has never been calibrated against ground truth.
-- **The replay backtest is evidence, not validation.** Against the real August 2025 season:
-  10 of 20 sites reached by fire, alerts raised on all 10, 0 missed, median lead time 111 h.
-  Recall looks strong; precision is the weak side — 19 of 20 sites reached HIGH, so the score
-  separates *how bad* far better than it separates *whether*. A median of 111 h partly
-  measures when the region lit up, not a per-site prediction.
+- **The replay backtest is evidence, not validation.** Against the real August 2025 season
+  across both regions, measured on the live deployment: **11 of 28 sites reached by fire,
+  alerts raised on all 11, 0 missed exposures, 14 ever CRITICAL, median lead time 111 h.**
+  Recall looks strong; precision is the weak side — nearly every Galician site reached HIGH,
+  so the score separates *how bad* far better than it separates *whether*. A median of 111 h
+  partly measures when the region lit up, not a per-site prediction. The Tunisian sites are
+  the better test of discrimination, since they sit quiet for days before escalating.
 - **The sensor mesh is simulated.** No hardware exists. Readings are derived from the same
   real detections plus a day/night ambient model. Nothing in the demo is a physical device.
 - **OSM coverage is thinner in rural Tunisia.** Four of the eight Tunisian sites returned

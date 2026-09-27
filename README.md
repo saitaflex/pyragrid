@@ -39,6 +39,20 @@ Built by two people in one repo (Rural Valley hackathon).
   and accuracy against the site's SOP rules. Drill data never enters real alerts.
   Extra demo employees: `ana@demo.eu`, `luis@demo.eu`.
 
+## Brand assets and fonts
+The PyraGrid artwork is in the repository — `frontend/public/brand/` holds the logo, the
+favicons and the 16 layered dragon pieces that drive the welcome animation.
+
+**The two display typefaces are not**, and that is deliberate: TAN St. Canard and Helvetica
+Now Display are commercially licensed, so `brand-source/` and `frontend/public/fonts/` are
+git-ignored rather than redistributed. A fresh clone therefore builds and runs correctly but
+falls back to Georgia and Helvetica Neue/Arial — the typography looks plainer than the
+deployed site, which is expected, not broken. https://rural-valley.vercel.app shows the
+intended type because a CLI deploy uploads the local font files directly.
+
+To match it locally, drop the licensed `.woff2` files into `frontend/public/fonts/` using the
+names in the `@font-face` rules at the top of `frontend/src/index.css`.
+
 ## Run locally
 ```bash
 # Engine

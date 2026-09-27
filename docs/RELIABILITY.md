@@ -1,6 +1,6 @@
 # Reliability, cost and limits
 
-Measured on 27 September 2026 against the real FIRMS dataset (17,579 VIIRS detections,
+Measured on 27 September 2026, with the security middleware active (its overhead is within measurement noise), against the real FIRMS dataset (17,579 VIIRS detections,
 8–25 August 2025, Ourense / Galicia). Every number below was produced by a command in this
 repo, not estimated. Reproduce with `scripts/eval_advisor.py` and the commands noted.
 
@@ -12,14 +12,13 @@ repo, not estimated. Reproduce with `scripts/eval_advisor.py` and the commands n
 | Detection file load, all rows parsed | 102 ms | `FileDetectionsProvider().detections()` |
 | Replay compute, 28 sites × 144 steps | 3.15 s | `ReplayData("demo", sites)`, once per process |
 | Cold API call (builds the replay cache) | 1,587 ms | `GET /api/portfolio` |
-| Warm `GET /api/portfolio` | 5 ms | best of 3 |
-| Warm `GET /api/alerts` | 10 ms | best of 3 |
-| Warm `GET /api/sites/{id}/status` | 20 ms | best of 3 |
-| Warm `GET /api/incidents/{id}` | 28 ms | best of 3 |
-| Warm `GET /api/sites/{id}/handoff` | 23 ms | best of 3 |
-| Warm `GET /api/sensors` (35-node mesh) | 59 ms | best of 3 |
-| Warm `GET /api/replay/summary` | 620 ms | slowest endpoint; History page only |
-| Backend tests | 50 passing | `python -m pytest --import-mode=importlib --ignore=tests/test_db_both.py` |
+| Warm `GET /api/portfolio` | 4 ms | best of 3 |
+| Warm `GET /api/incidents/{id}` | 7 ms | best of 3 |
+| Warm `GET /api/alerts` | 13 ms | best of 3 |
+| Warm `GET /api/sensors` (49-node mesh) | 15 ms | best of 3 |
+| Warm `GET /api/sites/{id}/forecast` | 79 ms | Rothermel plus the detection window scan |
+| Warm `GET /api/replay/summary` | 79 ms | History page only |
+| Backend tests | 72 passing | `python -m pytest --import-mode=importlib --ignore=tests/test_db_both.py` |
 
 The replay is computed once per customer per process and cached in memory
 (`app/state.py`), which is why the first request pays 1.6 s and the rest cost single-digit

@@ -1,4 +1,11 @@
-# Rural Valley — Wildfire Asset Intelligence
+# PyraGrid — Wildfire Asset Intelligence
+
+> ### 👩‍⚖️ Judging this project? Start here → **[JUDGES.md](JUDGES.md)**
+> **Live:** https://rural-valley.vercel.app · `admin@demo.eu` / `demo1234`
+> 90-second path: **[docs/DEMO_SCRIPT.md](docs/DEMO_SCRIPT.md)** · 72 tests ·
+> real NASA FIRMS data for Spain and Tunisia · measured AI evaluation in
+> **[docs/RELIABILITY.md](docs/RELIABILITY.md)**
+
 
 Source-agnostic geospatial decision-support platform for wildfire asset risk.
 Built by two people in one repo (Rural Valley hackathon).

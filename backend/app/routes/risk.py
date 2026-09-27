@@ -12,7 +12,7 @@ from app.models import (
     TimelinePoint,
 )
 from app.providers.weather import live_provider
-from app.providers.wildfire import FileDetectionsProvider
+from app.providers.wildfire import FileDetectionsProvider, firms_live
 from app.replay import build_summary, parse, snap
 
 router = APIRouter(tags=["risk"])
@@ -56,6 +56,33 @@ def live_weather(site_id: str, user: AuthUser = Depends(require_staff)) -> dict:
             "status": reading.status}
 
 
+@router.get("/sites/{site_id}/fire/live")
+def live_fire(site_id: str, radius_km: float = Query(default=25.0, ge=1.0, le=200.0),
+              days: int = Query(default=1, ge=1, le=2),
+              user: AuthUser = Depends(require_staff)) -> dict:
+    """NASA FIRMS near-real-time detections around the site, right now.
+
+    The replay scores the committed August 2025 archive; this is what a live deployment
+    watches. NRT data lags the satellite pass by about 3 hours, which the response states so
+    nobody reads an empty list as "nothing is burning".
+    """
+    rd = state.get_replay(user.customer_id)
+    if site_id not in rd.sites:
+        raise HTTPException(status_code=404, detail="site not found")
+    provider = firms_live()
+    if provider is None:
+        return {"available": False, "reason": "FIRMS_MAP_KEY is not set"}
+    site = rd.sites[site_id]
+    rows = provider.near(site.lat, site.lon, radius_km, days)
+    if rows is None:
+        return {"available": False, "reason": "FIRMS near-real-time feed unreachable"}
+    return {"available": True, "site_id": site_id, "source": "NASA FIRMS VIIRS NRT",
+            "radius_km": radius_km, "days": days, "count": len(rows),
+            "latency_note": "NRT detections lag the satellite pass by about 3 hours",
+            "nearest_km": rows[0]["distance_km"] if rows else None,
+            "detections": rows[:50]}
+
+
 @router.get("/sites/{site_id}/forecast", response_model=SpreadForecast)
 def site_forecast(site_id: str, at: str | None = None,
                   user: AuthUser = Depends(require_staff)) -> SpreadForecast:
@@ -82,6 +109,11 @@ def timeline(site_id: str, user: AuthUser = Depends(require_staff)) -> list[Time
 def detections(at: str | None = None,
                window_hours: int = Query(default=12, ge=1, le=48),
                user: AuthUser = Depends(get_current_user)) -> list[Detection]:
+    """Raw satellite detections. `get_current_user`, not `require_staff`, is deliberate:
+    these are public NASA FIRMS records carrying no site, asset or personnel data, and the
+    partner roles exist precisely to see the fire situation. Every endpoint that joins a
+    detection to a site requires staff. window_hours is capped so this cannot be used to pull
+    the whole archive in one request."""
     at = snap(at)
     from datetime import timedelta
     from app.replay import fmt

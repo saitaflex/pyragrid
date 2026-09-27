@@ -2,7 +2,17 @@
 import pytest
 from fastapi.testclient import TestClient
 
-from app import db, state
+from app import db, security, state
+
+
+@pytest.fixture(autouse=True)
+def _reset_rate_limiter():
+    """The rate limiter is process-global and stays ENABLED for every test, so the production
+    path is the tested path. Each test just starts with a fresh budget instead of inheriting
+    the previous test's requests."""
+    security._window = security.SlidingWindow()
+    yield
+    security._window = security.SlidingWindow()
 
 
 @pytest.fixture()

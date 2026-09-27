@@ -10,20 +10,27 @@ import threading
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from app import security
 from app.routes import (
     advisor, alerts, assets, auth, drills, risk, sensors, simulate, situation, sop, system,
 )
 
 app = FastAPI(title="Wildfire Asset Intelligence — Engine", version="2.1.0")
 
-# CORS: allow all origins, methods and headers (bearer tokens, no cookies). §2.1
+# CORS: origins from ALLOWED_ORIGINS, "*" when unset. Safe to be permissive only because
+# auth is a bearer token and there are no cookies, so no hostile page can ride a session.
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_origins=security.allowed_origins(),
+    allow_methods=["GET", "POST", "PATCH", "DELETE", "OPTIONS"],
+    allow_headers=["Authorization", "Content-Type", "X-Request-Id"],
     allow_credentials=False,
+    max_age=600,
 )
+
+# Rate limiting, security headers, request ids and error containment. See app/security.py
+# for the threat model and for the honest limits of an in-process rate limiter.
+security.install(app)
 
 _ready_lock = threading.Lock()
 _ready = False

@@ -3,20 +3,27 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 
 from app import config
-from app.auth import AuthUser, get_current_user, make_token, verify_password
+from app.auth import (
+    AuthUser, dummy_verify, get_current_user, make_token, verify_password,
+)
 from app.db import get_db
 from app.models import LoginRequest, LoginResponse, User
+from app.security import client_ip, login_guard
 
 router = APIRouter(tags=["auth"])
 
 
 @router.post("/auth/login", response_model=LoginResponse)
-def login(body: LoginRequest) -> LoginResponse:
+def login(body: LoginRequest, request: Request) -> LoginResponse:
+    login_guard(body.email, client_ip(request))
     row = get_db().get_user(body.email)
-    if not row or not verify_password(body.password, row["salt"], row["hash"]):
+    if not row:
+        dummy_verify()          # same cost as a real check: do not leak which accounts exist
+        raise HTTPException(status_code=401, detail="invalid credentials")
+    if not verify_password(body.password, row["salt"], row["hash"]):
         raise HTTPException(status_code=401, detail="invalid credentials")
     now = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
     get_db().add_audit(row["customer_id"], now, row["email"], "login", "")

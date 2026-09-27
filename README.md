@@ -61,6 +61,20 @@ Real NASA FIRMS VIIRS detections for both operating regions, fetched by
 **Galicia, Spain** (20 sites, 17,579 detections) and **northwest Tunisia** (8 sites, 358
 detections) over 8–25 August 2025. Sites added after a database was first seeded are
 backfilled idempotently on boot, so an existing deployment picks them up on redeploy.
+## Security
+Rate limiting by route class, constant-time login, HS256 pinned with required claims,
+security headers, request ids and contained errors — see
+[`docs/SECURITY.md`](docs/SECURITY.md) for the threat model, the test that covers each
+control, and the limitations stated plainly (the rate limiter is in-process, so on Vercel the
+effective limit scales with instance count). Env vars: `JWT_SECRET` (fatal if missing in
+production), `ALLOWED_ORIGINS`, `GROQ_API_KEY`, `WEATHERAPI_KEY`, `FIRMS_MAP_KEY`.
+
+## Live data for real operation
+The replay scores the committed August 2025 archive. For live operation:
+`GET /api/sites/{id}/weather/live` (weatherapi.com) and `GET /api/sites/{id}/fire/live`
+(NASA FIRMS VIIRS **NRT**, which lags the satellite pass by about 3 hours). Both report
+`available: false` rather than failing when their key is absent or the upstream is down.
+
 ## Weather
 Real observed weather is committed for every site: hourly Open-Meteo archive across the replay
 window (`python scripts/fetch_weather.py`, no key needed), so the risk score and the spread

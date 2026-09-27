@@ -88,3 +88,55 @@ class WeatherService:
 
     def get(self, site_id: str, at: str) -> Optional[WeatherReading]:
         return self._archive.get(site_id, at) or self._assumed.get(site_id, at)
+
+
+class WeatherApiProvider(WeatherProvider):
+    """Real-time current conditions from weatherapi.com, for live operation.
+
+    The replay runs on August 2025, so historical hours come from the committed Open-Meteo
+    archive; this provider answers "what is the weather at this site right now", which is
+    what a real deployment scores against. Needs WEATHERAPI_KEY. Never raises: a weather
+    provider that throws would take the whole risk score down with it, so a failure returns
+    None and the chain falls through to the next provider.
+    """
+
+    BASE = "https://api.weatherapi.com/v1/current.json"
+
+    def __init__(self, key: str, ttl_s: int = 600) -> None:
+        self._key = key
+        self._ttl = ttl_s
+        self._cache: dict[str, tuple[float, Optional[WeatherReading]]] = {}
+
+    def current(self, lat: float, lon: float) -> Optional[WeatherReading]:
+        import time as _time
+
+        ck = f"{lat:.3f},{lon:.3f}"
+        hit = self._cache.get(ck)
+        if hit and _time.time() - hit[0] < self._ttl:
+            return hit[1]
+        try:
+            import httpx
+
+            r = httpx.get(self.BASE, params={"key": self._key, "q": ck, "aqi": "no"},
+                          timeout=8.0)
+            r.raise_for_status()
+            c = r.json()["current"]
+            reading = WeatherReading(
+                temp_c=float(c["temp_c"]), rh_pct=float(c["humidity"]),
+                speed_kmh=float(c["wind_kph"]),
+                from_deg=int(round(float(c["wind_degree"]))) % 360,
+                status="observed",
+            )
+        except Exception:  # noqa: BLE001 — see the class docstring
+            reading = None
+        self._cache[ck] = (_time.time(), reading)
+        return reading
+
+    def get(self, site_id: str, at: str) -> Optional[WeatherReading]:
+        """Not used for replay times: the archive owns history. See `current()`."""
+        return None
+
+
+def live_provider() -> Optional[WeatherApiProvider]:
+    key = os.environ.get("WEATHERAPI_KEY", "")
+    return WeatherApiProvider(key) if key else None

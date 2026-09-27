@@ -11,6 +11,7 @@ from app.models import (
     Detection, HandoffPack, Portfolio, ReplaySummary, SiteStatus, SpreadForecast,
     TimelinePoint,
 )
+from app.providers.weather import live_provider
 from app.providers.wildfire import FileDetectionsProvider
 from app.replay import build_summary, parse, snap
 
@@ -32,6 +33,27 @@ def site_status(site_id: str, at: str | None = None,
         raise HTTPException(status_code=404, detail="site not found")
     rules = get_db().list_rules(user.customer_id)
     return service.with_sop(rd.status_at(site_id, snap(at)), rd.sites[site_id], rules)
+
+
+@router.get("/sites/{site_id}/weather/live")
+def live_weather(site_id: str, user: AuthUser = Depends(require_staff)) -> dict:
+    """Current observed conditions at the site from weatherapi.com. The replay scores against
+    the committed Open-Meteo archive; this is what a live deployment would use instead."""
+    rd = state.get_replay(user.customer_id)
+    if site_id not in rd.sites:
+        raise HTTPException(status_code=404, detail="site not found")
+    provider = live_provider()
+    if provider is None:
+        return {"available": False,
+                "reason": "WEATHERAPI_KEY is not set; the replay uses the observed archive"}
+    site = rd.sites[site_id]
+    reading = provider.current(site.lat, site.lon)
+    if reading is None:
+        return {"available": False, "reason": "live weather provider unreachable"}
+    return {"available": True, "site_id": site_id, "source": "weatherapi.com",
+            "temp_c": reading.temp_c, "rh_pct": reading.rh_pct,
+            "wind_speed_kmh": reading.speed_kmh, "wind_from_deg": reading.from_deg,
+            "status": reading.status}
 
 
 @router.get("/sites/{site_id}/forecast", response_model=SpreadForecast)

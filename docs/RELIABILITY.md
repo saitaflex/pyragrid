@@ -100,8 +100,8 @@ presses the button — never on a timer, never per detection.
   Proximity, wind alignment, weather, fuel and asset vulnerability, hand-weighted, version
   `rules-1.0`. It has never been calibrated against ground truth.
 - **The replay backtest is evidence, not validation.** Against the real August 2025 season
-  across both regions, measured on the live deployment: **11 of 28 sites reached by fire,
-  alerts raised on all 11, 0 missed exposures, 14 ever CRITICAL, median lead time 111 h.**
+  across both regions, on real observed weather: **12 of 28 sites reached by fire, alerts
+  raised on all 12, 0 missed exposures, 7 ever CRITICAL, median lead time 109.5 h.**
   Recall looks strong; precision is the weak side — nearly every Galician site reached HIGH,
   so the score separates *how bad* far better than it separates *whether*. A median of 111 h
   partly measures when the region lit up, not a per-site prediction. The Tunisian sites are
@@ -117,8 +117,12 @@ presses the button — never on a timer, never per detection.
   no buildings or vegetation from Overpass, so their sensors fall back to an even grid
   instead of real mapped features. The two sites with meshes installed (Ghardimaou,
   Zaghouan) do sit on real OSM features.
-- **Weather is not live in the demo.** The cache is empty, so scoring uses the documented
-  assumed weather constants.
+- **Weather is now real observed data.** Open-Meteo's archive is committed for all 28 sites,
+  hourly across the replay window, so the risk score and the spread forecast run on the
+  conditions that actually occurred (36.3 °C, 24% RH, wind from 212° at Ghardimaou on
+  24 August 2025 at 15:00Z). `WEATHERAPI_KEY` adds weatherapi.com current conditions for live
+  operation, exposed at `GET /api/sites/{id}/weather/live`; it returns None rather than
+  raising, so a weather outage cannot take the risk score down.
 - **FIRMS gives detections, not fire perimeters**, at roughly 375 m resolution with hours of
   latency. The product is decision support for an asset owner, not a fire-behaviour model.
 - **The tactics guardrail is a regex.** It is best-effort defence in depth behind mandatory

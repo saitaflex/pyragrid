@@ -61,6 +61,14 @@ Real NASA FIRMS VIIRS detections for both operating regions, fetched by
 **Galicia, Spain** (20 sites, 17,579 detections) and **northwest Tunisia** (8 sites, 358
 detections) over 8–25 August 2025. Sites added after a database was first seeded are
 backfilled idempotently on boot, so an existing deployment picks them up on redeploy.
+## Weather
+Real observed weather is committed for every site: hourly Open-Meteo archive across the replay
+window (`python scripts/fetch_weather.py`, no key needed), so the risk score and the spread
+forecast run on the conditions that actually occurred rather than assumed constants. For live
+operation set `WEATHERAPI_KEY` (weatherapi.com) and `GET /api/sites/{id}/weather/live` returns
+current conditions at the site; the provider returns nothing rather than raising, so a weather
+outage cannot take the risk score with it.
+
 ## Spread forecast
 `GET /api/sites/{site_id}/forecast?at=` estimates how the fire develops toward a site: rate
 of spread, time to arrival, and the front's position over the next 12 hours. Rothermel (1972)

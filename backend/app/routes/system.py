@@ -36,8 +36,11 @@ def _weather_source(customer_id: str) -> SourceStatus:
     sites = get_db().list_assets(customer_id)
     missing = [s for s in sites if not (_WEATHER / f"{s.site_id}.json").exists()]
     assumed = os.environ.get("ASSUMED_WEATHER", "true").lower() == "true"
+    live = "; weatherapi.com live for current conditions" if os.environ.get(
+        "WEATHERAPI_KEY") else "; no live provider configured"
     if not missing:
-        return SourceStatus(name="Weather", state="ONLINE", detail="Open-Meteo historical archive")
+        return SourceStatus(name="Weather", state="ONLINE",
+                            detail=f"Open-Meteo observed archive for all {len(sites)} sites{live}")
     if assumed:
         return SourceStatus(name="Weather", state="FALLBACK",
                             detail=f"Assumed weather for {len(missing)} site(s) (archive not fetched)")

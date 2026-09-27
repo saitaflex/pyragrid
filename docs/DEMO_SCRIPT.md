@@ -15,7 +15,7 @@ Every page reads the replay clock from `?at=`, so each tab opens on the right mo
 |:--|:--|:--|
 | 1 | `/?at=2025-08-20T15:00:00Z` | Portfolio, Tunisia quiet |
 | 2 | `/?at=2025-08-24T15:00:00Z` | Same portfolio, Tunisia critical |
-| 3 | `/incidents/TN-JN-001_20250824T0300?at=2025-08-24T15:00:00Z` | The incident and the advisor |
+| 3 | `/incidents/TN-JN-001_20250824T1200?at=2025-08-24T15:00:00Z` | The incident and the advisor |
 | 4 | `/sensors?at=2025-08-24T15:00:00Z` | The mesh localising the fire |
 | 5 | `/history` | The Galicia validation numbers |
 
@@ -37,10 +37,12 @@ badge reads *NASA FIRMS*.
 
 ## 0:12 – 0:26 · Four days later (tab 2)
 
-Same site, four days on: **CRITICAL, score 79, "Fire 1.3 km S, wind toward site."**
+Same site, four days on: **HIGH, score 71, fire 1.3 km south, wind pushing it toward the
+site** — and the spread forecast puts the front about **2.5 hours away**.
 
 > "Nothing about the site changed. The fire moved, the wind turned, and the ranking moved it
-> to the top on its own."
+> to the top on its own. And the weather here is real observed data for that hour — 36.3 °C,
+> 24% humidity, wind from the south-southwest — not an assumption."
 
 Then, in one sentence, the honest scale note:
 
@@ -65,6 +67,12 @@ Point at the access routes, then the protocol actions underneath.
 
 ## 1:04 – 1:20 · The AI, described honestly (back to tab 3)
 
+Before the advisor, point at the forecast line once:
+
+> "Rothermel's spread equation on the real wind and humidity puts the front about two and a
+> half hours from the fence. That is what the advice is sequenced against."
+
+
 > "The advisor writes the operator's next actions. It can only cite evidence we hand it — it
 > cannot invent a road or a sensor. It is blocked from ever giving firefighting tactics; that
 > is the fire service's job. The panel shows how many suggestions the safety rules threw
@@ -75,9 +83,9 @@ a guardrail that visibly fires beats one you merely claim.
 
 ## 1:20 – 1:30 · Close on the validation (tab 5)
 
-> "Replayed against the real season across both regions: eleven of the twenty-eight sites
-> were reached by fire. We raised an alert on every one — zero missed — with a median of four
-> days' warning."
+> "Replayed against the real season across both regions, on real observed weather: twelve of
+> the twenty-eight sites were reached by fire. We raised an alert on every one — zero missed —
+> with a median of four and a half days' warning."
 
 Stop talking. Do not offer a tour of the other twelve pages.
 

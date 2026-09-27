@@ -23,6 +23,10 @@ TOKEN_HOURS = 12
 ASSUMED_WEATHER = {"temp_c": 32.0, "rh_pct": 22.0, "speed_kmh": 20.0, "from_deg": 225}
 # Representative slope for the spread forecast until a DEM layer is loaded (design doc §1.3).
 ASSUMED_SLOPE_PCT = 15.0
+DISCLAIMER_ASSISTANT = ("AI answer grounded in this company's own site data, for the "
+                        "operator's planning. Not firefighting instructions and not a "
+                        "substitute for the approved protocol. A human decides every action; "
+                        "always follow the fire service's orders.")
 METHOD_SPREAD = ("Rothermel (1972) surface spread with Albini (1976) dead/live weighting, "
                  "Simard (1968) fuel moisture, Alexander (1985) elliptical growth; fuel "
                  "models calibrated to Anderson (1982) Table 1.")

@@ -270,6 +270,20 @@ class SpreadForecast(BaseModel):
     disclaimer: str
 
 
+class AssistantAnswer(BaseModel):
+    """One answer from the grounded operations assistant. `evidence` keys are copied from a
+    closed whitelist, so an answer can always be traced back to the data behind it."""
+
+    answer: str
+    evidence: list[str]
+    urgency: Literal["info", "action", "urgent"]
+    refused: bool
+    generated_by: str
+    model: Optional[str]
+    fallback_reason: Optional[str]
+    disclaimer: str
+
+
 class ReplaySummary(BaseModel):
     start: str
     end: str

@@ -19,6 +19,17 @@ class LLMProvider:
     def suggest(self, system_prompt: str, user_message: str) -> list[dict]:
         raise NotImplementedError
 
+    def suggest_one(self, system_prompt: str, user_message: str) -> dict:
+        """One JSON object rather than a list of suggestions (the assistant's shape)."""
+        raise NotImplementedError
+
+
+def _parse_object(text: str) -> dict:
+    data = json.loads(text)
+    if not isinstance(data, dict):
+        raise ValueError("not a JSON object")
+    return data
+
 
 def _parse(text: str) -> list[dict]:
     data = json.loads(text)
@@ -32,7 +43,7 @@ class GroqProvider(LLMProvider):
         self.model = os.environ.get("GROQ_MODEL", "openai/gpt-oss-120b")
         self._key = os.environ["GROQ_API_KEY"]
 
-    def suggest(self, system_prompt: str, user_message: str) -> list[dict]:
+    def _chat(self, system_prompt: str, user_message: str) -> str:
         body = {"model": self.model, "temperature": 0.2, "max_tokens": 4000,
                 "response_format": {"type": "json_object"},
                 "messages": [{"role": "system", "content": system_prompt},
@@ -51,8 +62,14 @@ class GroqProvider(LLMProvider):
             r.raise_for_status()
             payload = r.json()
             self.last_usage = payload.get("usage")
-            return _parse(payload["choices"][0]["message"]["content"])
+            return payload["choices"][0]["message"]["content"]
         raise RuntimeError("unreachable")
+
+    def suggest(self, system_prompt: str, user_message: str) -> list[dict]:
+        return _parse(self._chat(system_prompt, user_message))
+
+    def suggest_one(self, system_prompt: str, user_message: str) -> dict:
+        return _parse_object(self._chat(system_prompt, user_message))
 
 
 class OllamaProvider(LLMProvider):
@@ -60,7 +77,7 @@ class OllamaProvider(LLMProvider):
         self.model = os.environ.get("OLLAMA_MODEL", "llama3.1")
         self._url = os.environ["OLLAMA_URL"].rstrip("/")
 
-    def suggest(self, system_prompt: str, user_message: str) -> list[dict]:
+    def _chat(self, system_prompt: str, user_message: str) -> str:
         r = httpx.post(
             f"{self._url}/api/chat",
             json={"model": self.model, "stream": False, "format": "json",
@@ -69,4 +86,10 @@ class OllamaProvider(LLMProvider):
             timeout=config.LLM_TIMEOUT_S,
         )
         r.raise_for_status()
-        return _parse(r.json()["message"]["content"])
+        return r.json()["message"]["content"]
+
+    def suggest(self, system_prompt: str, user_message: str) -> list[dict]:
+        return _parse(self._chat(system_prompt, user_message))
+
+    def suggest_one(self, system_prompt: str, user_message: str) -> dict:
+        return _parse_object(self._chat(system_prompt, user_message))

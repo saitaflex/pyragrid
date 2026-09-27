@@ -3,6 +3,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import { TopBar } from "./components/TopBar";
 import { Footer } from "./components/Disclaimer";
 import { Banner } from "./components/Banner";
+import { AssistantDock } from "./components/AssistantDock";
 import { RequireAuth, StaffOnly } from "./components/RouteGuards";
 import { DrillBanner } from "./components/DrillBanner";
 import { ToastStack } from "./components/Toasts";
@@ -42,6 +43,7 @@ function Layout() {
         </motion.main>
       </AnimatePresence>
       <div className="no-print"><Footer /></div>
+      <AssistantDock />
     </div>
   );
 }

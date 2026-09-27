@@ -353,3 +353,17 @@ export interface SpreadForecast {
   method: string;
   disclaimer: string;
 }
+
+/** One answer from the grounded operations assistant. `evidence` keys come from a closed
+ *  whitelist, so every answer traces back to the data behind it. */
+export interface AssistantAnswer {
+  answer: string;
+  evidence: string[];
+  urgency: "info" | "action" | "urgent";
+  refused: boolean;
+  generated_by: string;
+  model: string | null;
+  fallback_reason: string | null;
+  disclaimer: string;
+}
+export interface AssistantTurn { role: "operator" | "assistant"; text: string }

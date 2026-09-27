@@ -12,7 +12,8 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app import security
 from app.routes import (
-    advisor, alerts, assets, auth, drills, risk, sensors, simulate, situation, sop, system,
+    advisor, alerts, assets, assistant, auth, drills, risk, sensors, simulate, situation,
+    sop, system,
 )
 
 app = FastAPI(title="Wildfire Asset Intelligence — Engine", version="2.1.0")
@@ -49,8 +50,8 @@ def ensure_ready() -> None:
         _ready = True
 
 
-for _r in (system, auth, assets, risk, alerts, sop, advisor, sensors, situation, drills,
-           simulate):
+for _r in (system, auth, assets, risk, alerts, sop, advisor, assistant, sensors,
+           situation, drills, simulate):
     app.include_router(_r.router, prefix="/api")
 
 

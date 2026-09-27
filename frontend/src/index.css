@@ -412,3 +412,40 @@ tr:hover td { background: var(--panel); }
   .badge.CRITICAL .dot, .drill-pulse { animation: none; opacity: 1; }
   .btn.working::after { animation: none; background: color-mix(in srgb, var(--ember) 22%, transparent); }
 }
+
+/* ---------- operations assistant dock ---------- */
+/* Anchored bottom-right so it is reachable from every page without covering the map, and it
+   never prints: a handoff pack should not carry a chat widget. */
+.assistant-fab {
+  position: fixed; right: 20px; bottom: 20px; z-index: 40;
+}
+.assistant-dock {
+  position: fixed; right: 20px; bottom: 20px; z-index: 40;
+  width: min(420px, calc(100vw - 40px));
+  display: flex; flex-direction: column;
+  background: var(--bg-1);
+  box-shadow: var(--shadow);
+}
+.assistant-log {
+  display: grid; gap: 12px;
+  max-height: min(46vh, 380px);
+  overflow-y: auto;
+  padding-right: 4px;
+}
+.assistant-msg { font-size: 13.5px; line-height: 1.55; }
+/* the operator's own words sit right and quiet; the answer sits left with an urgency edge */
+.assistant-msg.operator {
+  justify-self: end; max-width: 85%;
+  background: var(--panel-2); border: 1px solid var(--border);
+  border-radius: 12px 12px 4px 12px; padding: 8px 12px;
+  color: var(--text-dim);
+}
+.assistant-msg.assistant {
+  background: var(--panel); border: 1px solid var(--border);
+  border-radius: 12px 12px 12px 4px; padding: 10px 12px;
+}
+@media (max-width: 560px) {
+  .assistant-dock { right: 12px; left: 12px; bottom: 12px; width: auto; }
+  .assistant-log { max-height: 40vh; }
+}
+@media print { .assistant-dock, .assistant-fab { display: none !important; } }

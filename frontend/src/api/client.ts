@@ -6,7 +6,7 @@ import type {
   Health, ImportReport, Incident, IngestionRun, LoginResponse, OutboxEmail, Portfolio, Site,
   SiteStatus, SopRule, SopRuleInput, SourceStatus, TimelinePoint, User, ReplaySummary,
   SensorsResponse, Situation, StaffUser, DrillView, DrillScenario, SimAdvice,
-  SpreadForecast,
+  SpreadForecast, AssistantAnswer, AssistantTurn,
 } from "./types";
 import type { Conditions, FireState } from "../sim/firesim";
 
@@ -205,6 +205,8 @@ const mock = {
   simAdvice: (_siteId: string, _c: Conditions, _st: SimStateBody): Promise<SimAdvice> => needsEngine(),
   simComplete: (_body: { site_id: string; summary: string; actions_done: string[]; actions_total: number; duration_s: number }): Promise<void> => needsEngine(),
   getForecast: (_id: string, _atStep: number): Promise<SpreadForecast> => needsEngine(),
+  askAssistant: (_q: string, _siteId: string | null, _atStep: number,
+                 _history: AssistantTurn[]): Promise<AssistantAnswer> => needsEngine(),
 };
 
 /** What the simulator sends to the AI: the numbers, not the drawn shapes. */
@@ -256,6 +258,8 @@ const live: typeof mock = {
   getSiteStatus: (id, s) => req("GET", `/sites/${encodeURIComponent(id)}/status`, { query: { at: at(s) } }),
   getTimeline: (id) => req("GET", `/sites/${encodeURIComponent(id)}/timeline`),
   getForecast: (id, s) => req("GET", `/sites/${encodeURIComponent(id)}/forecast`, { query: { at: at(s) } }),
+  askAssistant: (q, siteId, s, history) =>
+    req("POST", "/assistant/ask", { body: { question: q, site_id: siteId, at: at(s), history } }),
   getDetections: (s, windowH = 12) => req("GET", "/detections", { query: { at: at(s), window_hours: windowH } }),
   getSummary: () => req("GET", "/replay/summary"),
   getAlerts: (s, status = "all") => req("GET", "/alerts", { query: { at: at(s), status } }),

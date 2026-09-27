@@ -174,7 +174,16 @@ def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--cases", type=int, default=10)
     ap.add_argument("--json", type=str, default="")
+    ap.add_argument("--timeout", type=float, default=0.0,
+                    help="override the product's LLM timeout for measurement only: a slow "
+                         "local model still gets measured instead of only timing out")
     args = ap.parse_args()
+
+    product_timeout = config.LLM_TIMEOUT_S
+    if args.timeout:
+        config.LLM_TIMEOUT_S = args.timeout
+        print(f"measuring with a {args.timeout:.0f}s timeout; the product itself falls "
+              f"back to the template engine after {product_timeout}s\n")
 
     cases = build_cases(args.cases)
     print(f"{len(cases)} real incidents from the FIRMS replay "

@@ -35,17 +35,38 @@ cd backend
 GROQ_API_KEY=... python scripts/eval_advisor.py --cases 10 --json eval.json
 ```
 
-| | template (no AI) | Groq `openai/gpt-oss-120b` |
-|:--|--:|--:|
-| Usable answers | 6/6 | _to fill from the run_ |
-| Evidence grounding | 100% (73/73) | _to fill_ |
-| Guardrail rejections | none | _to fill_ |
-| Latency p50 | < 1 ms | _to fill_ |
-| Cost per call | €0 | _to fill_ |
+| | template (no AI) | `llama3.2:1b` local, CPU | Groq `openai/gpt-oss-120b` |
+|:--|--:|--:|--:|
+| Usable answers | 6/6 | 1/6 | _pending a key_ |
+| Call failures | 0 | 2 (timeout) | _pending_ |
+| Evidence grounding | **100%** (73/73) | **72.8%** (59/81) | _pending_ |
+| Guardrail rejections | none | 7 hallucinated evidence keys, 5 non-objects, 1 bad priority, 1 missing fields | _pending_ |
+| Latency p50 / max | <1 ms | 9.87 s / 19.36 s | _pending_ |
+| Cost per call | €0 | €0 (own hardware) | _pending_ |
+
+Measured on 6 CRITICAL incidents from the real replay. Two further local models were tried:
+`qwen3.5:4b` exceeded **222 s** per call on this laptop's CPU and was abandoned, and a single
+timed `llama3.2:1b` call took 22.4 s. A 3,770-character prompt with 25 evidence keys is simply
+too much for a small model on a CPU.
+
+**What this measurement actually shows.** The guardrails are load-bearing, not decorative. The
+small local model invented evidence keys in **22 of 81 citations** — keys naming sensors and
+access routes that do not exist on that site — and `validate()` rejected every one before it
+could reach an operator's screen. It also returned 5 items that were not objects at all. The
+same pipeline with the same prompt produced usable, fully grounded output from the template
+engine, which is why the fallback exists.
+
+It also shows local inference needs a GPU to be viable here: at 9.9 s median and 19.4 s worst
+case, the local model misses the product's own 15 s budget, so the product would correctly
+have fallen back to the template engine. Self-hosting is a real option for a customer who will
+not send site data to a hosted API — on a GPU, not on a laptop.
 
 Grounding is the number that matters: it counts how many evidence keys the model cited that
 were actually in the whitelist we gave it. A key it invents is a key it made up about
 someone's site, and `validate()` drops the whole suggestion when that happens.
+
+`--timeout` raises the limit for measurement only, so a slow model gets measured instead of
+only recording a timeout; the product keeps its own 15 s budget.
 
 ## Failure modes and what happens
 

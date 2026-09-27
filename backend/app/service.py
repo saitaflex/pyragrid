@@ -1,6 +1,8 @@
 """service.py — request-time assembly shared by routes (sop_actions, portfolio)."""
 from __future__ import annotations
 
+import math
+
 from app.models import Portfolio, PortfolioCounts, SiteStatus
 from app.replay import ReplayData
 from app.sop import RANK, match_actions
@@ -24,3 +26,34 @@ def portfolio(rd: ReplayData, rules, at: str) -> Portfolio:
     )
     exposed = sum(s.value_eur for s in sites if s.level in ("HIGH", "CRITICAL"))
     return Portfolio(at=at, counts=counts, total_exposed_value_eur=exposed, sites=sites)
+
+
+def detections_near(rd, site, at: str):
+    """Scored detections in the site's window — the same set the risk score saw."""
+    from datetime import timedelta
+
+    from app import config
+    from app.providers.wildfire import FileDetectionsProvider
+    from app.replay import fmt, parse
+
+    win = fmt(parse(at) - timedelta(hours=config.DETECTION_WINDOW_HOURS))
+    margin = config.FIRE_RADIUS_KM + site.radius_m / 1000.0
+    dlat = margin / 111.0
+    dlon = margin / (111.0 * max(0.01, math.cos(math.radians(site.lat))))
+    return [d for d in FileDetectionsProvider().detections()
+            if d.confidence in ("n", "h") and win < d.observed_at <= at
+            and abs(d.lat - site.lat) <= dlat and abs(d.lon - site.lon) <= dlon]
+
+
+def forecast_for(rd, site, at: str):
+    """SpreadForecast for one site, or None when no fire is in range."""
+    from app import config, spread
+    from app.models import SpreadForecast
+    from app.providers.weather import WeatherService
+
+    f = spread.forecast_site(site, WeatherService().get(site.site_id, at),
+                             detections_near(rd, site, at), at)
+    if f is None:
+        return None
+    return SpreadForecast(method=config.METHOD_SPREAD, disclaimer=config.DISCLAIMER_SPREAD,
+                          **vars(f))

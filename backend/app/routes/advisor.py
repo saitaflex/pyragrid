@@ -81,7 +81,9 @@ def generate(incident_id: str, at: str | None = None,
         meshes, nodes, _ = sensors.snapshot(rd.sites, installs, at, site_id=inc.site_id,
                                             event_limit=0)
         ground = (meshes[0], nodes) if meshes else None
-    resp = advisor_mod.generate(site, status, headline, rules, incident_id, at, ground)
+    forecast = service.forecast_for(rd, site, at)
+    resp = advisor_mod.generate(site, status, headline, rules, incident_id, at, ground,
+                                forecast)
     _store(user.customer_id, resp)
     get_db().add_audit(user.customer_id, _now(), user.email, "advisor_generate", incident_id)
     return resp

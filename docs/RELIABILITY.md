@@ -106,6 +106,11 @@ presses the button — never on a timer, never per detection.
   so the score separates *how bad* far better than it separates *whether*. A median of 111 h
   partly measures when the region lit up, not a per-site prediction. The Tunisian sites are
   the better test of discrimination, since they sit quiet for days before escalating.
+- **The spread forecast is physics, not a trained model.** Rothermel (1972) with published
+  coefficients, calibrated to Anderson (1982) fuel-model rates and tested against them, but
+  never validated against an observed perimeter. It assumes uniform slope and fuel, constant
+  wind, and surface fire only — no crown fire and no spotting, which is how real fires cross
+  barriers. Every response carries its own `assumptions` list. See `docs/FIRE_SPREAD.md`.
 - **The sensor mesh is simulated.** No hardware exists. Readings are derived from the same
   real detections plus a day/night ambient model. Nothing in the demo is a physical device.
 - **OSM coverage is thinner in rural Tunisia.** Four of the eight Tunisian sites returned

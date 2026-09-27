@@ -8,7 +8,8 @@ from app import service, state
 from app.auth import AuthUser, get_current_user, require_staff
 from app.db import get_db
 from app.models import (
-    Detection, HandoffPack, Portfolio, ReplaySummary, SiteStatus, TimelinePoint,
+    Detection, HandoffPack, Portfolio, ReplaySummary, SiteStatus, SpreadForecast,
+    TimelinePoint,
 )
 from app.providers.wildfire import FileDetectionsProvider
 from app.replay import build_summary, parse, snap
@@ -31,6 +32,20 @@ def site_status(site_id: str, at: str | None = None,
         raise HTTPException(status_code=404, detail="site not found")
     rules = get_db().list_rules(user.customer_id)
     return service.with_sop(rd.status_at(site_id, snap(at)), rd.sites[site_id], rules)
+
+
+@router.get("/sites/{site_id}/forecast", response_model=SpreadForecast)
+def site_forecast(site_id: str, at: str | None = None,
+                  user: AuthUser = Depends(require_staff)) -> SpreadForecast:
+    """How the fire is likely to develop toward this site: rate of spread, time to arrival
+    and the front's position over the next 12 hours. 404 when no fire is within range."""
+    rd = state.get_replay(user.customer_id)
+    if site_id not in rd.sites:
+        raise HTTPException(status_code=404, detail="site not found")
+    f = service.forecast_for(rd, rd.sites[site_id], snap(at))
+    if f is None:
+        raise HTTPException(status_code=404, detail="no fire within range of this site")
+    return f
 
 
 @router.get("/sites/{site_id}/timeline", response_model=list[TimelinePoint])

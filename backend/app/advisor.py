@@ -30,8 +30,14 @@ SYSTEM_PROMPT = (
     "follows its orders.\n"
     "3. Base every suggestion only on the context. Each suggestion must cite one or more "
     "evidence keys, copied exactly from EVIDENCE_KEYS.\n"
-    "4. Be concrete and short. No speculation about how the fire will spread.\n"
-    "5. If ground_sensors is present, use it: the combined fire estimate is the most precise "
+    "4. Be concrete and short. Say nothing about how the fire will spread beyond what "
+    "spread_forecast states.\n"
+    "5. If spread_forecast is present, use its hours_to_arrival to set urgency and to "
+    "sequence the suggestions: what must happen before the front arrives, and in what order. "
+    "Quote its numbers only; never estimate a spread rate or an arrival time yourself, and "
+    "never contradict arrival_confidence. It is an estimate under assumptions, so do not "
+    "present it as certain.\n"
+    "6. If ground_sensors is present, use it: the combined fire estimate is the most precise "
     "position the company has, heat at a building means people may be there, and silent "
     "sensors mean an area is no longer monitored.\n"
     'Return only JSON: {"suggestions":[{"title": string (max 120 chars), "detail": string '
@@ -61,7 +67,7 @@ def _dead(ground) -> list:
 
 
 def evidence_keys(site: Site, status: SiteStatus, rule_ids: list[str],
-                  ground=None) -> list[str]:
+                  ground=None, forecast=None) -> list[str]:
     keys = [f"factor:{n}" for n in
             ("proximity", "wind_alignment", "weather", "fuel", "vulnerability")]
     keys += [f"route:{r.name}" for r in status.access_routes]
@@ -78,10 +84,15 @@ def evidence_keys(site: Site, status: SiteStatus, rule_ids: list[str],
         if mesh.fire_estimate:
             keys.append("sensors:fire_estimate")
         keys += [f"sensor:{n.label}" for n in _hot(ground) + _dead(ground)]
+    if forecast is not None:
+        keys += ["forecast:spread_rate", "forecast:direction"]
+        if forecast.hours_to_arrival is not None:
+            keys.append("forecast:time_to_arrival")
     return sorted(set(keys))
 
 
-def build_context(site: Site, status: SiteStatus, headline: str, rules, ground=None) -> dict:
+def build_context(site: Site, status: SiteStatus, headline: str, rules, ground=None,
+                  forecast=None) -> dict:
     actions, rule_ids = match_actions(rules, status.level, site.type, status.criticality,
                                       status.fire_moving_toward_site)
     sensors = None
@@ -100,7 +111,22 @@ def build_context(site: Site, status: SiteStatus, headline: str, rules, ground=N
             "offline_sensors": [{"sensor": n.label, "place": n.place,
                                  "compass": compass(n.bearing_deg)} for n in _dead(ground)],
         }
+    spread_forecast = None
+    if forecast is not None:
+        spread_forecast = {
+            "hours_to_arrival": forecast.hours_to_arrival,
+            "arrival_confidence": forecast.arrival_confidence,
+            "spread_rate_toward_site_m_per_hour": forecast.ros_toward_site_m_h,
+            "heading_spread_rate_m_per_hour": forecast.ros_head_m_h,
+            "fire_distance_km": forecast.distance_km,
+            "approach_compass": compass(forecast.bearing_from_fire),
+            "fuel_model": forecast.fuel_model,
+            "front_positions": [p.model_dump() if hasattr(p, "model_dump") else p
+                                for p in forecast.front_positions],
+            "assumptions": forecast.assumptions,
+        }
     return {
+        "spread_forecast": spread_forecast,
         "ground_sensors": sensors,
         "site_name": site.name, "type": site.type, "criticality": site.criticality,
         "personnel_on_site": site.personnel_on_site, "level": status.level,
@@ -155,7 +181,7 @@ def validate(raw: list[dict], allowed_keys: list[str]) -> tuple[list[AdvisorSugg
 
 
 def template_engine(site: Site, status: SiteStatus, rule_ids: list[str],
-                    ground=None) -> list[dict]:
+                    ground=None, forecast=None) -> list[dict]:
     routes = {r.name: r.status for r in status.access_routes}
     exposed = [n for n, st in routes.items() if st == "potentially_exposed"]
     available = [n for n, st in routes.items() if st == "available"]
@@ -234,15 +260,28 @@ def template_engine(site: Site, status: SiteStatus, rule_ids: list[str],
         out.append({"title": "Review the protocol actions and record which were taken",
                     "detail": "Review the matching protocol actions and record which were taken.",
                     "audience": "operator", "priority": 3, "evidence": rule_keys})
+    if forecast is not None and forecast.hours_to_arrival is not None:  # T8
+        h = forecast.hours_to_arrival
+        out.append({"title": f"Work to an estimated {h:.1f} h before the front reaches the site",
+                    "detail": f"At the estimated spread rate of "
+                              f"{forecast.ros_toward_site_m_h} m/h toward the site, the front "
+                              f"is about {h:.1f} h away ({forecast.arrival_confidence}). "
+                              "Sequence protocol actions to finish inside that window and "
+                              "re-check after the next satellite pass; this is an estimate "
+                              "under stated assumptions, not a certainty.",
+                    "audience": "operator", "priority": 1,
+                    "evidence": ["forecast:time_to_arrival", "forecast:spread_rate"]})
     return out
 
 
 def generate(site: Site, status: SiteStatus, headline: str, rules, incident_id: str,
-             at: str, ground=None) -> AdvisorResponse:
-    """`ground` = (SensorMesh, [SensorNode]) when the site has sensors installed."""
+             at: str, ground=None, forecast=None) -> AdvisorResponse:
+    """`ground` = (SensorMesh, [SensorNode]) when the site has sensors installed.
+    `forecast` = SpreadForecast when a fire is in range, so the advice can be sequenced
+    against the time the front is estimated to arrive."""
     rule_ids = matched_rule_ids(status, site, rules)
-    keys = evidence_keys(site, status, rule_ids, ground)
-    context = build_context(site, status, headline, rules, ground)
+    keys = evidence_keys(site, status, rule_ids, ground, forecast)
+    context = build_context(site, status, headline, rules, ground, forecast)
     user_message = f"EVIDENCE_KEYS: {json.dumps(keys)}\nCONTEXT: {json.dumps(context)}"
 
     attempts = []
@@ -272,7 +311,8 @@ def generate(site: Site, status: SiteStatus, headline: str, rules, incident_id: 
 
     if not suggestions:
         generated_by, model = "template", None
-        suggestions, rejected = validate(template_engine(site, status, rule_ids, ground), keys)
+        suggestions, rejected = validate(
+            template_engine(site, status, rule_ids, ground, forecast), keys)
 
     return AdvisorResponse(
         incident_id=incident_id, at=at, generated_by=generated_by, model=model,

@@ -61,6 +61,16 @@ Real NASA FIRMS VIIRS detections for both operating regions, fetched by
 **Galicia, Spain** (20 sites, 17,579 detections) and **northwest Tunisia** (8 sites, 358
 detections) over 8–25 August 2025. Sites added after a database was first seeded are
 backfilled idempotently on boot, so an existing deployment picks them up on redeploy.
+## Spread forecast
+`GET /api/sites/{site_id}/forecast?at=` estimates how the fire develops toward a site: rate
+of spread, time to arrival, and the front's position over the next 12 hours. Rothermel (1972)
+with Albini dead/live weighting, Simard fuel moisture and an Alexander ellipse; fuel models
+calibrated to Anderson (1982) and asserted in `tests/test_spread.py`. The advisor uses it to
+sequence its suggestions inside the arrival window. It is a physical estimate under stated
+assumptions, not a trained or validated prediction — the response returns its own
+`assumptions` list, and [`docs/FIRE_SPREAD.md`](docs/FIRE_SPREAD.md) covers the limits, the
+training data sources and the path to the learned half.
+
 See [`docs/RELIABILITY.md`](docs/RELIABILITY.md) for measured latencies, failure modes and
 limits, and [`docs/DEMO_SCRIPT.md`](docs/DEMO_SCRIPT.md) for the 90-second demo path.
 

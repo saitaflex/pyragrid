@@ -240,6 +240,36 @@ class TimelinePoint(BaseModel):
     nearest_fire_km: Optional[float]
 
 
+class FrontPosition(BaseModel):
+    hours_ahead: int
+    lat: float
+    lon: float
+    travel_km: float
+    reaches_site: bool
+
+
+class SpreadForecast(BaseModel):
+    """Where the front is likely to go next. A physical estimate, not a trained prediction:
+    `assumptions` lists every simplification and must be shown wherever this is displayed."""
+
+    site_id: str
+    at: str
+    fire_lat: float
+    fire_lon: float
+    distance_km: float
+    bearing_from_fire: int
+    ros_head_m_h: int
+    ros_toward_site_m_h: int
+    hours_to_arrival: Optional[float]
+    arrival_confidence: str
+    fuel_model: str
+    front_positions: list[FrontPosition]
+    terms: dict
+    assumptions: list[str]
+    method: str
+    disclaimer: str
+
+
 class ReplaySummary(BaseModel):
     start: str
     end: str

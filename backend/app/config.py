@@ -21,6 +21,15 @@ LEVELS = [(25, "NORMAL"), (50, "ELEVATED"), (75, "HIGH"), (100, "CRITICAL")]
 MAX_IMPORT_ROWS = 200    # keeps replay recompute well under Vercel limits (§5.9)
 TOKEN_HOURS = 12
 ASSUMED_WEATHER = {"temp_c": 32.0, "rh_pct": 22.0, "speed_kmh": 20.0, "from_deg": 225}
+# Representative slope for the spread forecast until a DEM layer is loaded (design doc §1.3).
+ASSUMED_SLOPE_PCT = 15.0
+METHOD_SPREAD = ("Rothermel (1972) surface spread with Albini (1976) dead/live weighting, "
+                 "Simard (1968) fuel moisture, Alexander (1985) elliptical growth; fuel "
+                 "models calibrated to Anderson (1982) Table 1.")
+DISCLAIMER_SPREAD = ("Physics-based estimate of fire spread under the stated assumptions, for "
+                     "the company's own planning. Not a validated prediction, not a "
+                     "fire-behaviour forecast for responders, and not firefighting advice. "
+                     "The fire service decides all firefighting actions.")
 NOTIFY_TO = {"demo": "control-room@demo.eu", "othercorp": "ops@othercorp.eu"}
 LLM_TIMEOUT_S = 15
 MAX_SUGGESTIONS = 6
